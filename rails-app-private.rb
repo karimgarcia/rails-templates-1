@@ -1,17 +1,5 @@
 run 'pgrep spring | xargs kill -9'
 
-# .ENV
-########################################
-run 'rm .env'
-file '.env', <<-RUBY
-source 'https://rubygems.org'
-ruby '#{RUBY_VERSION}'
-
-API_KEY='shopify-api-key-here'
-API_SECRET='shopify-api-secret-here'
-
-RUBY
-
 # GEMFILE
 ########################################
 run 'rm Gemfile'
@@ -34,8 +22,7 @@ gem 'sass-rails'
 gem 'simple_form'
 gem 'uglifier'
 gem 'webpacker'
-gem 'shopify_app'
-
+gem 'rails-shopify'
 
 group :development do
   gem 'web-console', '>= 3.3.0'
@@ -203,7 +190,7 @@ public/packs-test
 node_modules
 yarn-error.log
 .byebug_history
-# .env*
+.env*
 TXT
 
   # Devise install + user
