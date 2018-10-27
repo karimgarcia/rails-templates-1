@@ -22,7 +22,7 @@ gem 'sass-rails'
 gem 'simple_form'
 gem 'uglifier'
 gem 'webpacker'
-gem 'rails-shopify'
+gem 'shopify_app'
 
 group :development do
   gem 'web-console', '>= 3.3.0'
