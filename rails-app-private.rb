@@ -249,7 +249,7 @@ RUBY
 
 
 
-  generate('shopify_app:install', '--api_key #{API_KEY}', '--secret #{SECRET_KEY}'
+  generate('shopify_app:install', '--api_key #{API_KEY}', '--secret #{SECRET_KEY}')
   generate('shopify_app:shop_model')
   generate('shopify_app:home_controller')
   generate('shopify_app:app_proxy_controller')
