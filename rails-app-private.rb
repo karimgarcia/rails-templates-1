@@ -168,6 +168,8 @@ after_bundle do
   generate('simple_form:install', '--bootstrap')
   generate(:controller, 'pages', 'home', '--skip-routes', '--no-test-framework')
 
+
+
   # Routes
   ########################################
   route "root to: 'pages#home'"
@@ -208,6 +210,25 @@ class ApplicationController < ActionController::Base
 end
 RUBY
 
+### Shopify APP
+
+print "enter my APIKEY: "
+print "(if you don't, create a new app in your partner shoify account)"
+
+API_KEY = STDIN.gets.downcase.chomp
+
+print "enter my SECRETKEY: "
+SECRET_KEY = STDIN.gets.downcase.chomp
+
+
+
+generate('shopify_app:install', '--api_key #{API_KEY}', '--secret #{SECRET_KEY}'
+generate('shopify_app:shop_model')
+generate('shopify_app:home_controller')
+generate('shopify_app:app_proxy_controller')
+generate('shopify_app:controllers')
+
+### Shopify APP
   # migrate + devise views
   ########################################
   rails_command 'db:migrate'
@@ -264,5 +285,5 @@ JS
   ########################################
   git :init
   git add: '.'
-  git commit: "-m 'Initial commit with devise template from https://github.com/lewagon/rails-templates'"
+  git commit: "-m 'Initial commit with devise template from https://github.com/sativva/rails-templates'"
 end
