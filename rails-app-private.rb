@@ -210,25 +210,7 @@ class ApplicationController < ActionController::Base
 end
 RUBY
 
-### Shopify APP
 
-print "enter my APIKEY: "
-print "(if you don't, create a new app in your partner shoify account)"
-
-API_KEY = STDIN.gets.downcase.chomp
-
-print "enter my SECRETKEY: "
-SECRET_KEY = STDIN.gets.downcase.chomp
-
-
-
-generate('shopify_app:install', '--api_key #{API_KEY}', '--secret #{SECRET_KEY}'
-generate('shopify_app:shop_model')
-generate('shopify_app:home_controller')
-generate('shopify_app:app_proxy_controller')
-generate('shopify_app:controllers')
-
-### Shopify APP
   # migrate + devise views
   ########################################
   rails_command 'db:migrate'
@@ -255,6 +237,25 @@ RUBY
   ########################################
   run 'rm app/javascript/packs/application.js'
   run 'yarn add jquery bootstrap@3'
+  ### Shopify APP
+
+  p "enter my APIKEY: "
+  p "(if you don't, create a new app in your partner shoify account)"
+
+  API_KEY = STDIN.gets.downcase.chomp
+
+  p "enter my SECRETKEY: "
+  SECRET_KEY = STDIN.gets.downcase.chomp
+
+
+
+  generate('shopify_app:install', '--api_key #{API_KEY}', '--secret #{SECRET_KEY}'
+  generate('shopify_app:shop_model')
+  generate('shopify_app:home_controller')
+  generate('shopify_app:app_proxy_controller')
+  generate('shopify_app:controllers')
+
+  ### Shopify APP
   file 'app/javascript/packs/application.js', <<-JS
 import "bootstrap";
 JS
