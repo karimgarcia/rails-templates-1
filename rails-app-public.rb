@@ -206,7 +206,7 @@ yarn-error.log
 .env*
 TXT
 
-  # App controller
+  # Credentials
   ########################################
   file 'development_env.yml', <<-RUBY
   ROOT_URL: 'https://localhost:3000'
@@ -373,5 +373,5 @@ JS
   ########################################
   git :init
   git add: '.'
-  git commit: "-m 'Initial commit with devise template from https://github.com/sativva/rails-templates'"
+  git commit: "-m 'Initial commit with shopifyapp template from https://github.com/sativva/rails-templates'"
 end
