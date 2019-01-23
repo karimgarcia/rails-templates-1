@@ -208,10 +208,10 @@ TXT
 
   # Credentials
   ########################################
-  file 'development_env.yml', <<-RUBY
+  file 'config/development_env.yml', <<-RUBY
   ROOT_URL: 'https://localhost:3000'
   APP_NAME: 'Shopify APP'
-  SHOPIFY_CLIENT_API_KEY: API_KEY
+  SHOPIFY_CLIENT_API_KEY: #{API_KEY}
   SHOPIFY_CLIENT_API_SECRET: SECRET_KEY
 
 RUBY
