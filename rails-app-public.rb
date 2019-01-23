@@ -198,9 +198,9 @@ tmp/*
 public/assets
 public/packs
 public/packs-test
+node_modules
 development_env.yml
 production_env.yml
-node_modules
 yarn-error.log
 .byebug_history
 .env*
@@ -217,7 +217,6 @@ TXT
 RUBY
 
 
-
   # Devise install + user
   ########################################
   # generate('devise:install')
@@ -229,11 +228,9 @@ RUBY
   file 'app/controllers/application_controller.rb', <<-RUBY
 class ApplicationController < ActionController::Base
   protect_from_forgery with: :exception
-  # before_action :authenticate_user! devise
+  # before_action :authenticate_user!
 end
 RUBY
-
-
 
 
   # migrate + devise views
@@ -243,15 +240,15 @@ RUBY
 
   # Pages Controller
   ########################################
-#   run 'rm app/controllers/pages_controller.rb'
-#   file 'app/controllers/pages_controller.rb', <<-RUBY
-# class PagesController < ApplicationController
-#   skip_before_action :authenticate_user!, only: [:home]
+  run 'rm app/controllers/pages_controller.rb'
+  file 'app/controllers/pages_controller.rb', <<-RUBY
+class PagesController < ApplicationController
+  # skip_before_action :authenticate_user!, only: [:home]
 
-#   def home
-#   end
-# end
-# RUBY
+  def home
+  end
+end
+RUBY
 
   # Environments
   ########################################
@@ -264,16 +261,17 @@ RUBY
   run 'yarn add jquery bootstrap@3'
   ### Shopify APP
 
-  generate('shopify_app:install', "--api_key #{API_KEY}", "--secret #{SECRET_KEY}"),
-  generate('shopify_app:shop_model'),
+
+
+  generate('shopify_app:install', '--api_key #{API_KEY}', '--secret #{SECRET_KEY}')
+  generate('shopify_app:shop_model')
   generate('shopify_app:home_controller')
-  #generate('shopify_app:app_proxy_controller')
+  # generate('shopify_app:app_proxy_controller')
   generate('shopify_app:controllers')
   rails_command 'db:migrate'
 
   run 'rm config/initializers/shopify_app.rb'
   file 'config/initializers/shopify_app.rb', <<-RUBY
-
 
 ShopifyApp.configure do |config|
   config.application_name = ENV["APP_NAME"]
@@ -302,7 +300,6 @@ RUBY
 #   SHOPIFY_CLIENT_API_SECRET=SECRET_KEY
 # RUBY
 
-
   # Shop model
   ########################################
   run 'rm app/models/shop.rb'
@@ -318,7 +315,6 @@ RUBY
   end
 
 RUBY
-
 
   # Application Job
   ########################################
@@ -377,5 +373,7 @@ JS
   ########################################
   git :init
   git add: '.'
-  git commit: "-m 'Initial commit with shopifyapp template from https://github.com/sativva/rails-templates'"
+  git commit: "-m 'Initial commit with devise template from https://github.com/sativva/rails-templates'"
 end
+
+     # Consult this page for more scope options:
