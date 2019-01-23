@@ -216,6 +216,8 @@ TXT
 
 RUBY
 
+
+
   # Devise install + user
   ########################################
   # generate('devise:install')
@@ -230,6 +232,8 @@ class ApplicationController < ActionController::Base
   # before_action :authenticate_user! devise
 end
 RUBY
+
+
 
 
   # migrate + devise views
