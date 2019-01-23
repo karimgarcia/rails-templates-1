@@ -17,7 +17,7 @@ source 'https://rubygems.org'
 ruby '#{RUBY_VERSION}'
 
 #{"gem 'bootsnap', require: false" if Rails.version >= "5.2"}
-gem 'devise'
+# gem 'devise'
 gem 'jbuilder', '~> 2.0'
 gem 'pg', '~> 0.21'
 gem 'puma'
@@ -198,16 +198,28 @@ tmp/*
 public/assets
 public/packs
 public/packs-test
+development_env.yml
+production_env.yml
 node_modules
 yarn-error.log
 .byebug_history
 .env*
 TXT
 
+  # App controller
+  ########################################
+  file 'development_env.yml', <<-RUBY
+  ROOT_URL: 'https://localhost:3000'
+  APP_NAME: 'Shopify APP'
+  SHOPIFY_CLIENT_API_KEY: API_KEY
+  SHOPIFY_CLIENT_API_SECRET: SECRET_KEY
+
+RUBY
+
   # Devise install + user
   ########################################
-  generate('devise:install')
-  generate('devise', 'User')
+  # generate('devise:install')
+  # generate('devise', 'User')
 
   # App controller
   ########################################
@@ -215,32 +227,32 @@ TXT
   file 'app/controllers/application_controller.rb', <<-RUBY
 class ApplicationController < ActionController::Base
   protect_from_forgery with: :exception
-  before_action :authenticate_user!
+  # before_action :authenticate_user! devise
 end
 RUBY
 
 
   # migrate + devise views
   ########################################
-  rails_command 'db:migrate'
-  generate('devise:views')
+  # rails_command 'db:migrate'
+  # generate('devise:views')
 
   # Pages Controller
   ########################################
-  run 'rm app/controllers/pages_controller.rb'
-  file 'app/controllers/pages_controller.rb', <<-RUBY
-class PagesController < ApplicationController
-  skip_before_action :authenticate_user!, only: [:home]
+#   run 'rm app/controllers/pages_controller.rb'
+#   file 'app/controllers/pages_controller.rb', <<-RUBY
+# class PagesController < ApplicationController
+#   skip_before_action :authenticate_user!, only: [:home]
 
-  def home
-  end
-end
-RUBY
+#   def home
+#   end
+# end
+# RUBY
 
   # Environments
   ########################################
-  environment 'config.action_mailer.default_url_options = { host: "http://localhost:3000" }', env: 'development'
-  environment 'config.action_mailer.default_url_options = { host: "http://TODO_PUT_YOUR_DOMAIN_HERE" }', env: 'production'
+  environment 'config.action_mailer.default_url_options = { host: ENV["ROOT_URL"] }', env: 'development'
+  environment 'config.action_mailer.default_url_options = { host: ENV["ROOT_URL"] }', env: 'production'
 
   # Webpacker / Yarn
   ########################################
@@ -248,37 +260,86 @@ RUBY
   run 'yarn add jquery bootstrap@3'
   ### Shopify APP
 
-
-
-  generate('shopify_app:install', '--api_key #{API_KEY}', '--secret #{SECRET_KEY}')
-  generate('shopify_app:shop_model')
+  generate('shopify_app:install', "--api_key #{API_KEY}", "--secret #{SECRET_KEY}"),
+  generate('shopify_app:shop_model'),
   generate('shopify_app:home_controller')
-  generate('shopify_app:app_proxy_controller')
+  #generate('shopify_app:app_proxy_controller')
   generate('shopify_app:controllers')
   rails_command 'db:migrate'
 
   run 'rm config/initializers/shopify_app.rb'
   file 'config/initializers/shopify_app.rb', <<-RUBY
+
+
 ShopifyApp.configure do |config|
-  config.application_name = "My Shopify App"
+  config.application_name = ENV["APP_NAME"]
   config.api_key = ENV['SHOPIFY_CLIENT_API_KEY']
   config.secret = ENV['SHOPIFY_CLIENT_API_SECRET']
-  config.scope = "read_products" # Consult this page for more scope options:
+  config.scope = "read_content, write_content, read_themes, write_themes, read_products, write_products, read_product_listings, read_customers, write_customers, read_orders, write_orders, read_orders, write_orders, read_all_orders,read_draft_orders, write_draft_orders,read_inventory, write_inventory,read_locations, read_script_tags, write_script_tags, read_fulfillments, write_fulfillments,read_shipping, write_shipping,read_analytics,read_users, write_users,read_checkouts, write_checkouts,read_reports, write_reports, read_price_rules, write_price_rules,read_marketing_events, write_marketing_events,read_resource_feedbacks, write_resource_feedbacks,read_shopify_payments_payouts" # Consult this page for more scope options:
                                  # https://help.shopify.com/en/api/getting-started/authentication/oauth/scopes
   config.embedded_app = false
   config.after_authenticate_job = false
   config.session_repository = Shop
   # config.root_url = '/nested'
+  # webhook
   config.webhooks = [
-    {topic: 'carts/update', address: 'https://example-app.com/webhooks/carts_update'}
+    {topic: 'products/create', address: "ENV['ROOT_URL']/webhooks/products_update"}
   ]
+  config.scripttags = [
+      {event:'onload', src: 'https://my-shopifyapp.herokuapp.com/fancy.js'},
+      {event:'onload', src: ->(domain) { dynamic_tag_url(domain) } }
+    ]
 end
 RUBY
 
-run 'rm .env'
-file '.env', <<-RUBY
-  SHOPIFY_CLIENT_API_KEY=API_KEY
-  SHOPIFY_CLIENT_API_SECRET=SECRET_KEY
+# run 'rm .env'
+# file '.env', <<-RUBY
+#   SHOPIFY_CLIENT_API_KEY=API_KEY
+#   SHOPIFY_CLIENT_API_SECRET=SECRET_KEY
+# RUBY
+
+
+  # Shop model
+  ########################################
+  run 'rm app/models/shop.rb'
+  file 'app/models/shop.rb', <<-RUBY
+  class Shop < ActiveRecord::Base
+    include ShopifyApp::SessionStorage
+
+    def connect_to_store
+      session = ShopifyAPI::Session.new(self.shopify_domain, self.shopify_token)
+      session.valid?
+      ShopifyAPI::Base.activate_session(session)
+    end
+  end
+
+RUBY
+
+
+  # Application Job
+  ########################################
+  run 'rm app/jobs/application_job.rb'
+  file 'app/jobs/application_job.rb', <<-RUBY
+  class ApplicationJob < ActiveJob::Base
+    def session_api(shop_domain)
+      @shop = Shop.where(shopify_domain: shop_domain).first
+      @shop.connect_to_store
+    end
+  end
+
+RUBY
+
+  # Product Create Job
+  ########################################
+  file 'app/jobs/products_create_job.rb', <<-RUBY
+  class ProductsCreateJob < ApplicationJob
+    queue_as :default
+
+    def perform(*params)
+      p "____________CreateJob___________________"
+     # Do something later
+    end
+  end
 RUBY
 
   ### Shopify APP
