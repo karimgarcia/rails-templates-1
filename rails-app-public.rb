@@ -314,6 +314,10 @@ RUBY
       session.valid?
       ShopifyAPI::Base.activate_session(session)
     end
+
+    def api_version
+      ShopifyApp.configuration.api_version
+    end
   end
 
 RUBY
@@ -405,6 +409,8 @@ RUBY
 
       # Don't generate system test files.
       config.generators.system_tests = nil
+      config.api_version = '2019-04'
+
     end
   end
 
