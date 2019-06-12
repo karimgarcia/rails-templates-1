@@ -645,7 +645,7 @@ export default ResourcesList;
 
 JS
 
-run 'rm app/views/home/index.html.erb'
+
 file 'app/views/home/index.html.erb', <<-HTML
 <h2>Products</h2>
 
