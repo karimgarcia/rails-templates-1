@@ -132,11 +132,6 @@ file 'app/views/layouts/application.html.erb', <<-HTML
 HTML
 
 
-
-
-
-
-
 file 'app/views/shared/_flashes.html.erb', <<-HTML
 <% if notice %>
   <div class="alert alert-info alert-dismissible" role="alert">
@@ -441,7 +436,7 @@ RUBY
 import "bootstrap";
 JS
 
-  rm 'app/javascript/packs/hello_react.jsx'
+  run 'rm app/javascript/packs/hello_react.jsx'
   file 'app/javascript/packs/hello_react.jsx', <<-JS
   import React from 'react'
   import ReactDOM from 'react-dom'
