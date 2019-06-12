@@ -1,3 +1,4 @@
+
 # GEMFILE
 ########################################
 run 'rm Gemfile'
@@ -12,7 +13,7 @@ gem 'pg', '~> 0.21'
 gem 'puma'
 gem 'rails', '#{Rails.version}'
 gem 'redis'
-
+gem 'bootstrap', '~> 4.3.1'
 gem 'autoprefixer-rails'
 gem 'bootstrap-sass', '~> 3.3'
 gem 'font-awesome-sass', '~> 5.0.9'
