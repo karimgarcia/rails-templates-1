@@ -132,35 +132,7 @@ file 'app/views/layouts/application.html.erb', <<-HTML
 HTML
 
 
-run 'rm app/views/home/index.html.erb'
-file 'app/views/home/index.html.erb', <<-HTML
-<h2>Products</h2>
 
-<%= javascript_pack_tag 'hello_react' %>
-
-<div id="app"></div>
-
-<ul>
-  <% @products.each do |product| %>
-    <li><%= link_to product.title, "https://#{@shop_session.domain}/admin/products/#{product.id}", target: "_top" %></li>
-  <% end %>
-</ul>
-
-<hr>
-
-<h2>Webhooks</h2>
-
-<% if @webhooks.present? %>
-  <ul>
-    <% @webhooks.each do |webhook| %>
-      <li><%= webhook.topic %> : <%= webhook.address %></li>
-    <% end %>
-  </ul>
-<% else %>
-  <p>This app has not created any webhooks for this Shop. Add webhooks to your ShopifyApp initializer if you need webhooks</p>
-<% end %>
-
-HTML
 
 
 
@@ -672,6 +644,36 @@ class ResourcesList extends Component {
 export default ResourcesList;
 
 JS
+
+run 'rm app/views/home/index.html.erb'
+file 'app/views/home/index.html.erb', <<-HTML
+<h2>Products</h2>
+
+<%= javascript_pack_tag 'hello_react' %>
+
+<div id="app"></div>
+
+<ul>
+  <% @products.each do |product| %>
+    <li><%= link_to product.title, "https://#{@shop_session.domain}/admin/products/#{product.id}", target: "_top" %></li>
+  <% end %>
+</ul>
+
+<hr>
+
+<h2>Webhooks</h2>
+
+<% if @webhooks.present? %>
+  <ul>
+    <% @webhooks.each do |webhook| %>
+      <li><%= webhook.topic %> : <%= webhook.address %></li>
+    <% end %>
+  </ul>
+<% else %>
+  <p>This app has not created any webhooks for this Shop. Add webhooks to your ShopifyApp initializer if you need webhooks</p>
+<% end %>
+
+HTML
 
 
   inject_into_file 'config/webpack/environment.js', before: 'module.exports' do
