@@ -155,6 +155,7 @@ HTML
 run 'curl -L https://raw.githubusercontent.com/lewagon/awesome-navbars/master/templates/_navbar_wagon.html.erb > app/views/shared/_navbar.html.erb'
 run 'curl -L https://raw.githubusercontent.com/lewagon/rails-templates/master/logo.png > app/assets/images/logo.png'
 
+run 'rm app/views/shared/_navbar.html.erb'
 file 'app/views/shared/_navbar.html.erb', <<-HTML
   <div class="navbar navbar-expand-sm navbar-light navbar-lewagon">
     <%= link_to "#", class: "navbar-brand" do %>
@@ -768,7 +769,7 @@ export default ResourcesList;
 
 JS
 
-run 'rm config/application.rb'
+run 'rm app/views/home/index.html.erb'
 file 'app/views/home/index.html.erb', <<-HTML
 <h2>Products</h2>
 
