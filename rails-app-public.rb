@@ -119,6 +119,10 @@ file 'app/views/layouts/application.html.erb', <<-HTML
     <%= csrf_meta_tags %>
     <%= action_cable_meta_tag %>
     <%= stylesheet_link_tag 'application', media: 'all' %>
+    <link
+      rel="stylesheet"
+      href="https://sdks.shopifycdn.com/polaris/3.17.0/polaris.min.css"
+    />
     <%#= stylesheet_pack_tag 'application', media: 'all' %> <!-- Uncomment if you import CSS in app/javascript/packs/application.js -->
   </head>
   <body>
@@ -650,7 +654,7 @@ file 'app/views/home/index.html.erb', <<-HTML
 
 <ul>
   <% @products.each do |product| %>
-    <li><%= link_to product.title, "https://#{@shop_session.domain}/admin/products/#{product.id}", target: "_top" %></li>
+    <li><%= link_to product.title, "https://\#{@shop_session.domain}/admin/products/\#{product.id}", target: "_top" %></li>
   <% end %>
 </ul>
 
