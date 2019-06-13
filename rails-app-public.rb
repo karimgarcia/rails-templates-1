@@ -25,6 +25,7 @@ gem 'rails', '#{Rails.version}'
 gem 'redis'
 
 gem 'autoprefixer-rails'
+gem 'bootstrap', '~> 4.3.1'
 gem 'bootstrap-sass', '~> 3.3'
 gem 'font-awesome-sass', '~> 5.0.9'
 gem 'sass-rails'
@@ -153,6 +154,28 @@ HTML
 
 run 'curl -L https://raw.githubusercontent.com/lewagon/awesome-navbars/master/templates/_navbar_wagon.html.erb > app/views/shared/_navbar.html.erb'
 run 'curl -L https://raw.githubusercontent.com/lewagon/rails-templates/master/logo.png > app/assets/images/logo.png'
+
+file 'app/views/shared/_navbar.html.erb', <<-HTML
+  <div class="navbar navbar-expand-sm navbar-light navbar-lewagon">
+    <%= link_to "#", class: "navbar-brand" do %>
+      <%= image_tag "https://raw.githubusercontent.com/lewagon/fullstack-images/master/uikit/logo.png" %>
+      <% end %>
+
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav mr-auto">
+          <li class="nav-item">
+            <%= link_to "Logout", "/logout", class: "nav-link" %>
+          </li>
+      </ul>
+    </div>
+  </div>
+
+HTML
 
 # README
 ########################################
@@ -445,6 +468,7 @@ JS
   import React from 'react'
   import ReactDOM from 'react-dom'
   import Main from '../components/main'
+  import '@shopify/polaris/styles.css';
   import {AppProvider, Page, Card, Button} from '@shopify/polaris';
 
   document.addEventListener('DOMContentLoaded', () => {
@@ -520,7 +544,7 @@ JS
   export default Main;
 JS
 
-  file 'app/javascript/components/resouces_list.jsx', <<-JS
+  file 'app/javascript/components/resources_list.jsx', <<-JS
   import React, { Component } from 'react';
 import {Avatar, Card, List, ResourceList, FilterType, Select, TextField, TextStyle, Pagination } from '@shopify/polaris';
 
@@ -644,7 +668,7 @@ export default ResourcesList;
 
 JS
 
-
+run 'rm config/application.rb'
 file 'app/views/home/index.html.erb', <<-HTML
 <h2>Products</h2>
 
