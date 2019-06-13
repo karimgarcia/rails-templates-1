@@ -211,7 +211,22 @@ after_bundle do
   # Routes
   ########################################
   route "root to: 'pages#home'"
+  run 'rm config/routes.rb'
+  file 'config/routes.rb', <<-RUBY
+    Rails.application.routes.draw do
+      root :to => 'home#index'
+      mount ShopifyApp::Engine, at: '/'
+      root to: 'pages#home'
+      namespace :api, defaults: { format: :json } do
+        namespace :v1 do
+          get 'products', to: 'products#index'
 
+        end
+      end
+      # For details on the DSL available within this file, see http://guides.rubyonrails.org/routing.html
+    end
+
+  RUBY
   # Git ignore
   ########################################
   run 'rm .gitignore'
@@ -257,6 +272,7 @@ RUBY
   file 'app/controllers/application_controller.rb', <<-RUBY
 class ApplicationController < ShopifyApp::AuthenticatedController
   protect_from_forgery with: :exception
+  include Response
   # before_action :authenticate_user!
 end
 RUBY
@@ -339,7 +355,7 @@ RUBY
     include ShopifyApp::SessionStorage
 
     def connect_to_store
-      session = ShopifyAPI::Session.new(self.shopify_domain, self.shopify_token)
+      session = ShopifyAPI::Session.new({domain: self.shopify_domain, token: self.shopify_token, api_version: api_version})
       session.valid?
       ShopifyAPI::Base.activate_session(session)
     end
@@ -349,7 +365,91 @@ RUBY
     end
   end
 
+
+
 RUBY
+
+  # RESPONSE.RB
+  ########################################
+  file 'app/controllers/concerns/response.rb', <<-RUBY
+  module Response
+    def json_response(object, status = :ok)
+      render json: object, status: status
+    end
+  end
+
+
+RUBY
+
+  # API/V1/PRODUCT CONTROLLER
+  ########################################
+  file 'app/controllers/api/v1/products_controller.rb', <<-RUBY
+  module Api
+    module V1
+      class ProductsController < ApplicationController
+      # class ProductsController < ShopifyApp::AuthenticatedController
+        protect_from_forgery with: :null_session
+        # before_action :set_todo
+        # before_action :authenticate_user!
+        before_action :set_session
+        # before_action :set_todo_item
+        # before_action :set_todo_item_comment, only: %i[show update destroy]
+
+        # GET /todos/:todo_id/items/:item_id/comments
+        def index
+          @products = ShopifyAPI::Product.find(:all, params: {limit: 10, page: params[:page], title: params[:searchValue]})
+          json_response({products: @products})
+        end
+
+
+        # # GET /todos/:todo_id/items/:item_id/comments/:id
+        # def show
+        #   json_response(@comment)
+        # end
+
+        # # POST /todos/:todo_id/items/:item_id/comments
+        # def create
+        #   @comment = @item.comments
+        #   authorize(@comment)
+        #   @comment.create!(comment_params)
+        #   json_response(@comment, :created)
+        # end
+
+        # # PUT /todos/:todo_id/items/:id
+        # def update
+        #   @comment.update(comment_params)
+        #   authorize(@comment)
+        #   head :no_content
+        # end
+
+        # # DELETE /todos/:todo_id/items/:id
+        # def destroy
+        #   @comment.destroy
+        #   authorize(@comment)
+        #   head :no_content
+        # end
+
+        private
+
+        def set_session
+          @shop = Shop.where(shopify_domain: session['shopify_domain']).first
+          @shop.connect_to_store
+        end
+
+      end
+    end
+  end
+RUBY
+
+
+
+
+
+
+
+
+
+
   # Application Job
   ########################################
   run 'rm app/controllers/home_controller.rb'
@@ -501,7 +601,7 @@ JS
     }
 
     componentDidMount() {
-      this.fetchProducts(1)
+      this.fetchProducts({"page_id":1})
       // this.fetchSchedules()
     }
 
