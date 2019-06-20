@@ -1,3 +1,13 @@
+run 'pgrep spring | xargs kill -9'
+
+
+p "enter my APIKEY: "
+p "(if you don't, create a new app in your partner shoify account)"
+
+API_KEY = STDIN.gets.downcase.chomp
+
+p "enter my SECRETKEY: "
+SECRET_KEY = STDIN.gets.downcase.chomp
 
 # GEMFILE
 ########################################
@@ -13,8 +23,9 @@ gem 'pg', '~> 0.21'
 gem 'puma'
 gem 'rails', '#{Rails.version}'
 gem 'redis'
-gem 'bootstrap', '~> 4.3.1'
+
 gem 'autoprefixer-rails'
+gem 'bootstrap', '~> 4.3.1'
 gem 'bootstrap-sass', '~> 3.3'
 gem 'font-awesome-sass', '~> 5.0.9'
 gem 'sass-rails'
@@ -52,7 +63,7 @@ YAML
 ########################################
 run 'rm -rf app/assets/stylesheets'
 run 'rm -rf vendor'
-run 'curl -L https://github.com/lewagon/stylesheets/archive/master.zip > stylesheets.zip'
+run 'curl -L https://github.com/sativva/rails-templates/raw/master/rails-stylesheets-master.zip > stylesheets.zip'
 run 'unzip stylesheets.zip -d app/assets && rm stylesheets.zip && mv app/assets/rails-stylesheets-master app/assets/stylesheets'
 inject_into_file 'app/assets/stylesheets/config/_bootstrap_variables.scss', before: '// Override other variables below!' do
 "
@@ -109,6 +120,10 @@ file 'app/views/layouts/application.html.erb', <<-HTML
     <%= csrf_meta_tags %>
     <%= action_cable_meta_tag %>
     <%= stylesheet_link_tag 'application', media: 'all' %>
+    <link
+      rel="stylesheet"
+      href="https://sdks.shopifycdn.com/polaris/3.17.0/polaris.min.css"
+    />
     <%#= stylesheet_pack_tag 'application', media: 'all' %> <!-- Uncomment if you import CSS in app/javascript/packs/application.js -->
   </head>
   <body>
@@ -120,6 +135,7 @@ file 'app/views/layouts/application.html.erb', <<-HTML
   </body>
 </html>
 HTML
+
 
 file 'app/views/shared/_flashes.html.erb', <<-HTML
 <% if notice %>
@@ -136,8 +152,29 @@ file 'app/views/shared/_flashes.html.erb', <<-HTML
 <% end %>
 HTML
 
-run 'curl -L https://raw.githubusercontent.com/lewagon/awesome-navbars/master/templates/_navbar_wagon.html.erb > app/views/shared/_navbar.html.erb'
 run 'curl -L https://raw.githubusercontent.com/lewagon/rails-templates/master/logo.png > app/assets/images/logo.png'
+
+file 'app/views/shared/_navbar.html.erb', <<-HTML
+  <div class="navbar navbar-expand-sm navbar-light navbar-lewagon">
+    <%= link_to "#", class: "navbar-brand" do %>
+      <%= image_tag "https://raw.githubusercontent.com/lewagon/fullstack-images/master/uikit/logo.png" %>
+      <% end %>
+
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav mr-auto">
+          <li class="nav-item">
+            <%= link_to "Logout", "/logout", class: "nav-link" %>
+          </li>
+      </ul>
+    </div>
+  </div>
+
+HTML
 
 # README
 ########################################
@@ -173,7 +210,20 @@ after_bundle do
   # Routes
   ########################################
   route "root to: 'pages#home'"
-
+  run 'rm config/routes.rb'
+  file 'config/routes.rb', <<-RUBY
+    Rails.application.routes.draw do
+      root :to => 'home#index'
+      mount ShopifyApp::Engine, at: '/'
+      # root to: 'pages#home'
+      namespace :api, defaults: { format: :json } do
+        namespace :v1 do
+          get 'products', to: 'products#index'
+        end
+      end
+      # For details on the DSL available within this file, see http://guides.rubyonrails.org/routing.html
+    end
+  RUBY
   # Git ignore
   ########################################
   run 'rm .gitignore'
@@ -200,7 +250,7 @@ TXT
   # Credentials
   ########################################
   file 'config/development_env.yml', <<-RUBY
-  ROOT_URL: 'https://5b9d2bd8.ngrok.io'
+  ROOT_URL: 'https://localhost:3000'
   APP_NAME: 'Shopify APP'
   SHOPIFY_CLIENT_API_KEY: #{API_KEY}
   SHOPIFY_CLIENT_API_SECRET: #{SECRET_KEY}
@@ -219,6 +269,7 @@ RUBY
   file 'app/controllers/application_controller.rb', <<-RUBY
 class ApplicationController < ShopifyApp::AuthenticatedController
   protect_from_forgery with: :exception
+  include Response
   # before_action :authenticate_user!
 end
 RUBY
@@ -250,6 +301,7 @@ RUBY
   ########################################
   run 'rm app/javascript/packs/application.js'
   run 'yarn add jquery bootstrap@3'
+  run 'yarn add @shopify/polaris'
   ### Shopify APP
 
 
@@ -292,27 +344,99 @@ RUBY
 #   SHOPIFY_CLIENT_API_SECRET=SECRET_KEY
 # RUBY
 
-  # Shop model
-  ########################################
-  run 'rm app/models/shop.rb'
-  file 'app/models/shop.rb', <<-RUBY
-  class Shop < ActiveRecord::Base
-    include ShopifyApp::SessionStorage
+    # Shop model
+    ########################################
+    run 'rm app/models/shop.rb'
+    file 'app/models/shop.rb', <<-RUBY
+    class Shop < ActiveRecord::Base
+      include ShopifyApp::SessionStorage
 
-    def connect_to_store
-      session = ShopifyAPI::Session.new(self.shopify_domain, self.shopify_token)
-      session.valid?
-      ShopifyAPI::Base.activate_session(session)
+      def connect_to_store
+        session = ShopifyAPI::Session.new({domain: self.shopify_domain, token: self.shopify_token, api_version: api_version})
+        session.valid?
+        ShopifyAPI::Base.activate_session(session)
+      end
+
+      def api_version
+        ShopifyApp.configuration.api_version
+      end
+    end
+
+
+
+  RUBY
+
+    # RESPONSE.RB
+    ########################################
+    file 'app/controllers/concerns/response.rb', <<-RUBY
+    module Response
+      def json_response(object, status = :ok)
+        render json: object, status: status
+      end
+    end
+
+
+  RUBY
+
+
+ # API/V1/PRODUCT CONTROLLER
+  ########################################
+  file 'app/controllers/api/v1/products_controller.rb', <<-RUBY
+  module Api
+    module V1
+      class ProductsController < ApplicationController
+      # class ProductsController < ShopifyApp::AuthenticatedController
+        protect_from_forgery with: :null_session
+        # before_action :set_todo
+        # before_action :authenticate_user!
+        before_action :set_session
+        # before_action :set_todo_item
+        # before_action :set_todo_item_comment, only: %i[show update destroy]
+        # GET /todos/:todo_id/items/:item_id/comments
+        def index
+          @products = ShopifyAPI::Product.find(:all, params: {limit: 10, page: params[:page], title: params[:searchValue]})
+          json_response({products: @products})
+        end
+        # # GET /todos/:todo_id/items/:item_id/comments/:id
+        # def show
+        #   json_response(@comment)
+        # end
+        # # POST /todos/:todo_id/items/:item_id/comments
+        # def create
+        #   @comment = @item.comments
+        #   authorize(@comment)
+        #   @comment.create!(comment_params)
+        #   json_response(@comment, :created)
+        # end
+        # # PUT /todos/:todo_id/items/:id
+        # def update
+        #   @comment.update(comment_params)
+        #   authorize(@comment)
+        #   head :no_content
+        # end
+        # # DELETE /todos/:todo_id/items/:id
+        # def destroy
+        #   @comment.destroy
+        #   authorize(@comment)
+        #   head :no_content
+        # end
+        private
+        def set_session
+          @shop = Shop.where(shopify_domain: session['shopify_domain']).first
+          @shop.connect_to_store
+        end
+      end
     end
   end
-
 RUBY
+
   # Application Job
   ########################################
   run 'rm app/controllers/home_controller.rb'
   file 'app/controllers/home_controller.rb', <<-RUBY
   # frozen_string_literal: true
   class HomeController < ShopifyApp::AuthenticatedController
+    layout "application"
     def index
       @products = ShopifyAPI::Product.find(:all, params: { limit: 10 })
       @webhooks = ShopifyAPI::Webhook.find(:all)
@@ -381,7 +505,7 @@ RUBY
 
       #define ENV
       config.before_configuration do
-        env_file = File.join(Rails.root, 'config', "#{ENV['RAILS_ENV']}_env.yml")
+        env_file = File.join(Rails.root, 'config', "\#{ENV['RAILS_ENV']}_env.yml")
         YAML.load(File.open(env_file)).each do |key, value|
           ENV[key.to_s] = value
         end if File.exists?(env_file)
@@ -395,10 +519,16 @@ RUBY
 
       # Don't generate system test files.
       config.generators.system_tests = nil
+      config.api_version = '2019-04'
+
     end
   end
 
 RUBY
+text = File.read('config/application.rb')
+new_contents = text.gsub("\#", "#")
+File.open('config/application.rb', "w") {|file| file.puts new_contents }
+
 
   # Product Create Job
   ########################################
@@ -417,6 +547,242 @@ RUBY
   file 'app/javascript/packs/application.js', <<-JS
 import "bootstrap";
 JS
+
+  run 'rm app/javascript/packs/hello_react.jsx'
+  file 'app/javascript/packs/hello_react.jsx', <<-JS
+  import React from 'react'
+  import ReactDOM from 'react-dom'
+  import Main from '../components/main'
+  import '@shopify/polaris/styles.css';
+  import {AppProvider, Page, Card, Button} from '@shopify/polaris';
+
+  document.addEventListener('DOMContentLoaded', () => {
+    ReactDOM.render(
+      <AppProvider>
+        <Page title="Example app">
+          <Main />
+          <Card sectioned>
+            <Button onClick={() => alert('Button clicked!')}>Example button</Button>
+          </Card>
+        </Page>
+      </AppProvider>,
+      document.getElementById('app'),
+    )
+  })
+
+JS
+
+  file 'app/javascript/components/main.jsx', <<-JS
+  import React, { Component } from 'react';
+  import ResourcesList from './resources_list'
+
+
+  class Main extends Component {
+    constructor(props) {
+      super(props)
+      this.state = {
+        products: []
+      };
+    }
+
+    componentDidMount() {
+      this.fetchProducts({page_id: 1})
+      // this.fetchSchedules()
+    }
+
+    handlePageChange = (params) => {
+      this.fetchProducts(params)
+    }
+
+    fetchProducts = (params) => {
+      fetch(`/api/v1/products?page=${params["page_id"]}&title=${params["searchValue"]}`, {
+        method: 'GET',
+        // body: JSON.stringify({active_page: this.state.activePage}), // or 'PUT',
+        headers:{
+          'Content-Type': 'application/json'
+        }
+      }).then(res => res.json())
+      .then( (response) =>  {
+        console.log(response.products),
+        this.setState({ products: response.products }) })
+      .catch(error => console.error('Error:', error));
+    }
+
+
+    render() {
+      return (
+        <div>
+          <ResourcesList
+            products={this.state.products}
+            products_count={this.state.products_count}
+            handlePageChange={this.handlePageChange}
+          />
+            <br/>
+          <h3>Mes listes</h3>
+            <br/>
+        </div>
+
+      );
+    }
+  }
+
+  export default Main;
+JS
+
+  file 'app/javascript/components/resources_list.jsx', <<-JS
+  import React, { Component } from 'react';
+import {Avatar, Card, List, ResourceList, FilterType, Select, TextField, TextStyle, Pagination } from '@shopify/polaris';
+
+
+class ResourcesList extends Component {
+  state = {
+    searchValue: '',
+    appliedFilters: [
+      {
+        key: 'accountStatusFilter',
+        value: 'Account enabled',
+      },
+    ],
+    page_id: 1,
+    isFirstPage: true,
+    isLastPage: false,
+  };
+
+  handleSearchChange = (searchValue) => {
+    this.setState({searchValue});
+    console.log(this.state.searchValue);
+  };
+
+  handleFiltersChange = (appliedFilters) => {
+    this.setState({appliedFilters});
+  };
+
+  // PAGINATION
+  nextPage = () => {
+    console.log('Next');
+    this.setState({page_id: this.state.page_id += 1})
+    this.setState({isFirstPage: false})
+    this.props.handlePageChange({page_id: this.state.page_id })
+  };
+
+  prevPage = () => {
+    console.log('Previous');
+    this.setState({page_id: this.state.page_id -= 1});
+    (this.state.page_id == 1) ? this.setState({isFirstPage: true}) : '';
+    this.props.handlePageChange({page_id: this.state.page_id });
+  };
+  // PAGINATION
+
+
+  renderItem = (item) => {
+    const {id, url, title, image, published_at} = item;
+    const img_src = image ? image.src : `https://via.placeholder.com/150/`
+    const media = <img style={{maxHeight: "60px", width: "60px", objectFit: "contain"}} src={img_src} />;
+
+    return (
+      <ResourceList.Item id={id} url={url} media={media}>
+          <TextStyle>{title}</TextStyle>
+      </ResourceList.Item>
+    );
+  };
+
+  render() {
+    const resourceName = {
+      singular: 'product',
+      plural: 'products',
+    };
+    const {
+      isFirstPage,
+      isLastPage,
+    } = this.state;
+
+    const items = this.props.products;
+
+    const filters = [
+      {
+        key: 'orderCountFilter',
+        label: 'Number of orders',
+        operatorText: 'is greater than',
+        type: FilterType.TextField,
+      },
+      {
+        key: 'accountStatusFilter',
+        label: 'Account status',
+        operatorText: 'is',
+        type: FilterType.Select,
+        options: ['Enabled', 'Invited', 'Not invited', 'Declined'],
+      },
+    ];
+
+    const filterControl = (
+      <ResourceList.FilterControl
+        filters={filters}
+        appliedFilters={this.state.appliedFilters}
+        onFiltersChange={this.handleFiltersChange}
+        searchValue={this.state.searchValue}
+        onSearchChange={this.handleSearchChange}
+        additionalAction={{
+          content: 'Save',
+          onAction: () => this.props.handlePageChange({ searchValue: this.state.searchValue })
+        }}
+      />
+
+    );
+
+    return (
+      <Card>
+        <ResourceList
+          resourceName={resourceName}
+          items={items}
+          renderItem={this.renderItem}
+          filterControl={filterControl}
+
+        />
+        <Pagination
+          hasPrevious={!isFirstPage}
+          hasNext={items.length == 10 }
+          onPrevious={this.prevPage}
+          onNext={this.nextPage}
+        />
+      </Card>
+    );
+  }
+}
+
+export default ResourcesList;
+
+JS
+
+run 'rm app/views/home/index.html.erb'
+file 'app/views/home/index.html.erb', <<-HTML
+<h2>Products</h2>
+
+<%= javascript_pack_tag 'hello_react' %>
+
+<div id="app"></div>
+
+<ul>
+  <% @products.each do |product| %>
+    <li><%= link_to product.title, "https://\#{@shop_session.domain}/admin/products/\#{product.id}", target: "_top" %></li>
+  <% end %>
+</ul>
+
+<hr>
+
+<h2>Webhooks</h2>
+
+<% if @webhooks.present? %>
+  <ul>
+    <% @webhooks.each do |webhook| %>
+      <li><%= webhook.topic %> : <%= webhook.address %></li>
+    <% end %>
+  </ul>
+<% else %>
+  <p>This app has not created any webhooks for this Shop. Add webhooks to your ShopifyApp initializer if you need webhooks</p>
+<% end %>
+
+HTML
+
 
   inject_into_file 'config/webpack/environment.js', before: 'module.exports' do
 <<-JS
