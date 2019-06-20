@@ -63,7 +63,7 @@ YAML
 ########################################
 run 'rm -rf app/assets/stylesheets'
 run 'rm -rf vendor'
-run 'curl -L https://github.com/lewagon/stylesheets/archive/master.zip > stylesheets.zip'
+run 'curl -L https://github.com/sativva/rails-templates/raw/master/rails-stylesheets-master.zip > stylesheets.zip'
 run 'unzip stylesheets.zip -d app/assets && rm stylesheets.zip && mv app/assets/rails-stylesheets-master app/assets/stylesheets'
 inject_into_file 'app/assets/stylesheets/config/_bootstrap_variables.scss', before: '// Override other variables below!' do
 "
@@ -152,7 +152,6 @@ file 'app/views/shared/_flashes.html.erb', <<-HTML
 <% end %>
 HTML
 
-run 'curl -L https://raw.githubusercontent.com/lewagon/awesome-navbars/master/templates/_navbar_wagon.html.erb > app/views/shared/_navbar.html.erb'
 run 'curl -L https://raw.githubusercontent.com/lewagon/rails-templates/master/logo.png > app/assets/images/logo.png'
 
 file 'app/views/shared/_navbar.html.erb', <<-HTML
@@ -444,6 +443,10 @@ RUBY
   end
 
 RUBY
+text = File.read('config/application.rb')
+new_contents = text.gsub("\#", "#")
+File.open('config/application.rb', "w") {|file| file.puts new_contents }
+
 
   # Product Create Job
   ########################################
@@ -668,7 +671,7 @@ export default ResourcesList;
 
 JS
 
-run 'rm config/application.rb'
+run 'rm app/views/home/index.html.erb'
 file 'app/views/home/index.html.erb', <<-HTML
 <h2>Products</h2>
 
