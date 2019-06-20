@@ -63,10 +63,8 @@ YAML
 ########################################
 run 'rm -rf app/assets/stylesheets'
 run 'rm -rf vendor'
-run 'curl -L https://github.com/sativva/rails-templates/raw/master/rails-stylesheets-master.zip > stylesheets.zip'
+run 'curl -L https://github.com/sativva/rails-templates/raw/master/rails-stylesheets-master-tr.zip > stylesheets.zip'
 run 'unzip stylesheets.zip -d app/assets && rm stylesheets.zip && mv app/assets/rails-stylesheets-master app/assets/stylesheets'
-
-
 inject_into_file 'app/assets/stylesheets/config/_bootstrap_variables.scss', before: '// Override other variables below!' do
 "
 // Patch to make simple_form compatible with bootstrap 3
@@ -162,7 +160,7 @@ file 'app/views/shared/_navbar.html.erb', <<-HTML
   <div class="navbar navbar-expand-sm navbar-light navbar-lewagon">
     <%= link_to "#", class: "navbar-brand" do %>
       <%= image_tag "https://raw.githubusercontent.com/lewagon/fullstack-images/master/uikit/logo.png" %>
-    <% end %>
+      <% end %>
 
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
@@ -219,7 +217,7 @@ after_bundle do
     Rails.application.routes.draw do
       root :to => 'home#index'
       mount ShopifyApp::Engine, at: '/'
-      # root to: 'pages#home'
+      root to: 'pages#home'
       namespace :api, defaults: { format: :json } do
         namespace :v1 do
           get 'products', to: 'products#index'
@@ -445,14 +443,20 @@ RUBY
 RUBY
 
 
+
+
+
+
+
+
+
+
   # Application Job
   ########################################
   run 'rm app/controllers/home_controller.rb'
   file 'app/controllers/home_controller.rb', <<-RUBY
   # frozen_string_literal: true
   class HomeController < ShopifyApp::AuthenticatedController
-    layout 'application'
-
     def index
       @products = ShopifyAPI::Product.find(:all, params: { limit: 10 })
       @webhooks = ShopifyAPI::Webhook.find(:all)
@@ -823,6 +827,6 @@ JS
   git :init
   git add: '.'
   git commit: "-m 'Initial commit with devise template from https://github.com/sativva/rails-templates'"
-
+end
 
      # Consult this page for more scope options:
