@@ -97,7 +97,7 @@ inject_into_file 'app/assets/stylesheets/config/_bootstrap_variables.scss', befo
 }
 
 "
-
+end
 
 run 'rm app/assets/javascripts/application.js'
 file 'app/assets/javascripts/application.js', <<-JS
@@ -162,7 +162,7 @@ file 'app/views/shared/_navbar.html.erb', <<-HTML
   <div class="navbar navbar-expand-sm navbar-light navbar-lewagon">
     <%= link_to "#", class: "navbar-brand" do %>
       <%= image_tag "https://raw.githubusercontent.com/lewagon/fullstack-images/master/uikit/logo.png" %>
-      <% end %>
+    <% end %>
 
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
@@ -823,6 +823,6 @@ JS
   git :init
   git add: '.'
   git commit: "-m 'Initial commit with devise template from https://github.com/sativva/rails-templates'"
-end
+
 
      # Consult this page for more scope options:
