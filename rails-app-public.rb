@@ -343,25 +343,39 @@ RUBY
 #   SHOPIFY_CLIENT_API_SECRET=SECRET_KEY
 # RUBY
 
-  # Shop model
-  ########################################
-  run 'rm app/models/shop.rb'
-  file 'app/models/shop.rb', <<-RUBY
-  class Shop < ActiveRecord::Base
-    include ShopifyApp::SessionStorage
+    # Shop model
+    ########################################
+    run 'rm app/models/shop.rb'
+    file 'app/models/shop.rb', <<-RUBY
+    class Shop < ActiveRecord::Base
+      include ShopifyApp::SessionStorage
 
-    def connect_to_store
-      session = ShopifyAPI::Session.new(self.shopify_domain, self.shopify_token)
-      session.valid?
-      ShopifyAPI::Base.activate_session(session)
+      def connect_to_store
+        session = ShopifyAPI::Session.new({domain: self.shopify_domain, token: self.shopify_token, api_version: api_version})
+        session.valid?
+        ShopifyAPI::Base.activate_session(session)
+      end
+
+      def api_version
+        ShopifyApp.configuration.api_version
+      end
     end
 
-    def api_version
-      ShopifyApp.configuration.api_version
-    end
-  end
 
-RUBY
+
+  RUBY
+
+    # RESPONSE.RB
+    ########################################
+    file 'app/controllers/concerns/response.rb', <<-RUBY
+    module Response
+      def json_response(object, status = :ok)
+        render json: object, status: status
+      end
+    end
+
+
+  RUBY
 
 
  # API/V1/PRODUCT CONTROLLER
