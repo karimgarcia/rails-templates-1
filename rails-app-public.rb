@@ -63,21 +63,8 @@ YAML
 ########################################
 run 'rm -rf app/assets/stylesheets'
 run 'rm -rf vendor'
-run 'curl -L https://github.com/sativva/rails-templates/raw/master/rails-stylesheets-master-tr.zip > stylesheets.zip'
+run 'curl -L https://github.com/sativva/rails-templates/raw/master/rails-stylesheets-master.zip > stylesheets.zip'
 run 'unzip stylesheets.zip -d app/assets && rm stylesheets.zip && mv app/assets/rails-stylesheets-master app/assets/stylesheets'
-
-file 'app/assets/stylesheets/components/_polaris_overwrite.scss'
-inject_into_file 'app/assets/stylesheets/components/_polaris_overwrite.scss' do
-"
-.Polaris-Pagination {
-    display: inline-flex;
-    padding: 12px 20px;
-}
-"
-inject_into_file 'app/assets/stylesheets/components/_index.scss' do
-"
-@import 'polaris_overwrite'
-"
 
 inject_into_file 'app/assets/stylesheets/config/_bootstrap_variables.scss', before: '// Override other variables below!' do
 "
