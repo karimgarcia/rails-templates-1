@@ -9,6 +9,20 @@ API_KEY = STDIN.gets.downcase.chomp
 p "enter my SECRETKEY: "
 SECRET_KEY = STDIN.gets.downcase.chomp
 
+p "do you want charge Recurring Charge ? (y/n): "
+RECURRING = (STDIN.gets.downcase.chomp == 'y')
+
+if RECURRING
+  p "How many days of free trial? (0 for no): "
+  FREETRIAL = STDIN.gets.downcase.chomp
+  p "How much it cost by month: "
+  RECURRINGPRICE = STDIN.gets.downcase.chomp
+else
+  p "do you want a One time charge ? (y/n): "
+  ONETIMECHARGE = (STDIN.gets.downcase.chomp == 'y')
+  p "How much it cost ?: "
+  ONETIMEPRICE = STDIN.gets.downcase.chomp
+end
 # GEMFILE
 ########################################
 run 'rm Gemfile'
@@ -223,7 +237,40 @@ after_bundle do
       end
       # For details on the DSL available within this file, see http://guides.rubyonrails.org/routing.html
     end
+
+
+
   RUBY
+
+  if RECURRING
+    run 'rm config/routes.rb'
+    file 'config/routes.rb', <<-RUBY
+      Rails.application.routes.draw do
+        root :to => 'home#index'
+        mount ShopifyApp::Engine, at: '/'
+        # root to: 'pages#home'
+        namespace :api, defaults: { format: :json } do
+          namespace :v1 do
+            get 'products', to: 'products#index'
+          end
+        end
+        # For details on the DSL available within this file, see http://guides.rubyonrails.org/routing.html
+      end
+
+
+      resource :recurring_application_charge, only: [:show, :create_free_plan, :create_silver_plan, :create_gold_plan, :destroy] do
+        collection do
+          get :create_free_plan, to: 'recurring_application_charges#create_free_plan'
+          get :create_silver_plan, to: 'recurring_application_charges#create_silver_plan'
+          get :create_gold_plan, to: 'recurring_application_charges#create_gold_plan'
+          get :show, to: 'recurring_application_charges#show'
+          get :callback
+          post :customize
+        end
+      end
+
+    RUBY
+  end
   # Git ignore
   ########################################
   run 'rm .gitignore'
@@ -571,6 +618,405 @@ JS
   })
 
 JS
+
+
+#RECURRING CHARGE
+if RECURRING
+
+# controller
+file 'app/controllers/recurring_application_charges_controller.rb', <<-RUBY
+  class RecurringApplicationChargesController < ApplicationController
+    before_action :load_current_recurring_charge
+    # before_action :create
+
+    def show
+      @recurring_application_charge
+    end
+
+    def create_free_plan
+      unless ShopifyAPI::RecurringApplicationCharge.current
+        @recurring_application_charge = ShopifyAPI::RecurringApplicationCharge.new({
+                name: "Free Plan",
+                price: 0,
+                return_url: callback_recurring_application_charge_url,
+                test: true,
+                trial_days: 0,
+                capped_amount: 100,
+                terms: "10 events"},)
+        if @recurring_application_charge.save
+          @tokens = @recurring_application_charge.confirmation_url
+          redirect_to @recurring_application_charge.confirmation_url
+        end
+      else
+        redirect_to_correct_path(@recurring_application_charge)
+      end
+      # @recurring_application_charge.try!(:cancel)
+    end
+
+    def create_silver_plan
+      # unless ShopifyAPI::RecurringApplicationCharge.current
+          @recurring_application_charge = ShopifyAPI::RecurringApplicationCharge.new({
+                  name: "#{RECURRINGPRICE} Plan",
+                  price: RECURRINGPRICE,
+                  return_url: callback_recurring_application_charge_url,
+                  test: true,
+                  trial_days: 7
+                  # capped_amount: 4.99,
+                  terms: "Great things"
+                },)
+          if @recurring_application_charge.save
+            @tokens = @recurring_application_charge.confirmation_url
+            redirect_to @recurring_application_charge.confirmation_url
+          end
+
+      # else
+      #   redirect_to_correct_path(@recurring_application_charge)
+      # end
+    end
+
+    #def create_gold_plan
+      # unless ShopifyAPI::RecurringApplicationCharge.current
+          # @recurring_application_charge = ShopifyAPI::RecurringApplicationCharge.new({
+          #         name: "Calendar Easy Gold Plan",
+          #         price: 11.99,
+          #         return_url: callback_recurring_application_charge_url,
+          #         test: true,
+          #         trial_days: 15,
+          #         capped_amount: 100,
+          #         terms: "unlimited events, google cal sync"},)
+          # if @recurring_application_charge.save
+          #   @tokens = @recurring_application_charge.confirmation_url
+          #   redirect_to @recurring_application_charge.confirmation_url
+          # end
+
+      # else
+      #   redirect_to_correct_path(@recurring_application_charge)
+      # end
+    end
+
+    def customize
+      @recurring_application_charge.customize(params[:recurring_application_charge])
+      fullpage_redirect_to @recurring_application_charge.update_capped_amount_url
+    end
+
+    def callback
+      @recurring_application_charge = ShopifyAPI::RecurringApplicationCharge.find(params[:charge_id])
+      if @recurring_application_charge.status == 'accepted'
+        @recurring_application_charge.activate
+      end
+      redirect_to_correct_path(@recurring_application_charge)
+    end
+
+    def destroy
+      @recurring_application_charge.cancel
+
+      flash[:success] = "Recurring application charge was cancelled successfully"
+
+      redirect_to_correct_path(@recurring_application_charge)
+    end
+
+    private
+
+    def load_current_recurring_charge
+      @recurring_application_charge = ShopifyAPI::RecurringApplicationCharge.current
+    end
+
+    def recurring_application_charge_params
+      params.require(:recurring_application_charge).permit(
+        :name,
+        :price,
+        :capped_amount,
+        :terms,
+        :trial_days
+      )
+    end
+
+    def redirect_to_correct_path(recurring_application_charge)
+      if recurring_application_charge.try(:capped_amount)
+        redirect_to root_path
+      else
+        redirect_to root_path
+      end
+    end
+
+  end
+
+RUBY
+
+  run 'rm app/controllers/home_controller.rb'
+  file 'app/controllers/home_controller.rb', <<-RUBY
+  # frozen_string_literal: true
+  class HomeController < ShopifyApp::AuthenticatedController
+    layout "application"
+    def home
+      @products = ShopifyAPI::Product.find(:all, params: { limit: 10 })
+      @webhooks = ShopifyAPI::Webhook.find(:all)
+    end
+
+    def index
+      if session["shopify"]
+        @shop = Shop.find(session["shopify"])
+      else
+        redirect_to shopify_app_url
+      end
+
+      @plan = ShopifyAPI::RecurringApplicationCharge.current
+
+      if @plan
+        redirect_to home_url
+      end
+
+    end
+  end
+
+
+
+RUBY
+
+# show.html
+file 'app/views/recurring_application_charges/show.html.erb', <<-HTML
+  <script type="text/javascript">
+    ShopifyApp.ready(function(){
+      ShopifyApp.Bar.initialize({
+        title: "Recurring Charge",
+        icon: "<%#= asset_path('favicon.png') %>"
+      });
+    });
+  </script>
+
+  <% flash.each do |key, value| %>
+    <div class="alert alert-<%= key %>"><%= value %></div>
+  <% end %>
+
+  <%# if @recurring_application_charge.present? && !@recurring_application_charge.try(:capped_amount) %>
+    <div class="section">
+      <div class= "col-md-3">
+        <h4>
+          Recurring Charge
+        </h4>
+
+        <p>
+          Here you can see the terms of the recurring charge.
+        </p>
+      </div>
+
+      <div class="col-md-9">
+        <div class="panel panel-default">
+          <div class="panel-body">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Price</th>
+                  <th>Trial Days</th>
+                  <th>Billing On</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <%= @recurring_application_charge.name %>
+                  </td>
+                  <td>
+                    $<%= @recurring_application_charge.price %>
+                  </td>
+                  <td>
+                    <%= @recurring_application_charge.trial_days %>
+                  </td>
+                  <td>
+                    <%= @recurring_application_charge.billing_on %>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <hr />
+
+    <p>Si j'ai le free paln je peux upgrader to silver and gold + description</p>
+    <p>Si j'ai le silver plan je peux upgrader to gold</p>
+    <p>si j'ai le gold je peux desinstaller l'app</p>
+    <div class="section">
+      <div class= "col-md-3">
+      </div>
+      <div class="col-md-9">
+        <p>
+          <%= link_to 'Cancel charge', recurring_application_charge_path, method: :delete, class: "btn btn-danger" %>
+        </p>
+      </div>
+    </div>
+
+  <%# else %>
+
+  <%# end %>
+
+
+HTML
+
+# home.html
+file 'app/views/home/home.html.erb', <<-HTML
+  <h2>Products</h2>
+
+  <%= javascript_pack_tag 'hello_react' %>
+
+  <div id="app"></div>
+
+  <ul>
+    <% @products.each do |product| %>
+      <li><%= link_to product.title, "https://#{@shop_session.domain}/admin/products/#{product.id}", target: "_top" %></li>
+    <% end %>
+  </ul>
+
+  <hr>
+
+  <h2>Webhooks</h2>
+
+  <% if @webhooks.present? %>
+    <ul>
+      <% @webhooks.each do |webhook| %>
+        <li><%= webhook.topic %> : <%= webhook.address %></li>
+      <% end %>
+    </ul>
+  <% else %>
+    <p>This app has not created any webhooks for this Shop. Add webhooks to your ShopifyApp initializer if you need webhooks</p>
+  <% end %>
+
+
+
+HTML
+
+
+
+# index.html
+rm 'app/views/home/index.html.erb'
+file 'app/views/home/index.html.erb', <<-HTML
+  <% content_for :javascript do %>
+  <script type="text/javascript">
+  ShopifyApp.ready(function() {
+    ShopifyApp.Bar.initialize({ title: "Home" });
+  });
+  </script>
+  <% end %>
+  <div class="om-container">
+
+
+    <div class="description">
+      <h1>Calendar Easy</h1>
+      <p>This app allow you to display on any page you want, all your events, in a beautiful calendar, also as a list below</p>
+      <p>Each time you create, update or delete an event, the page is updated</p>
+      <p>With our great Chrome extension, Addfacebook event in one click</p>
+    </div>
+
+    <% if !@plan.nil? %>
+    <p>Your current plan is
+      <%= @plan.name%>
+    </p>
+    <% end %>
+    <br>
+    <hr><br>
+    <!-- If you have already an event go see your Calendar page -->
+    <div class="section">
+      <div class="col-md-12">
+        <!--     <div class="panel panel-default col-md-4">
+        <div class="panel-body text-center">
+          <h4>FREE PLAN</h4>
+          <%#= link_to 'Choose Free Plan', create_free_plan_recurring_application_charge_path, class: 'btn btn-large' %>
+          <p>1 calendar max, 10 events max.</p>
+          <br>
+          <br>
+
+        </div>
+      </div> -->
+        <div class="col-md-12">
+          <%= link_to create_silver_plan_recurring_application_charge_path,  class: 'btn plan_card' do %>
+          <div class="panel-body text-center">
+            <h4>LET'S TRY</h4>
+            <h5>7 days trial, Stop when you want</h5>
+            <ul style="text-align: left">
+              <li>unlimited calendars</li>
+              <li>unlimited events</li>
+              <li>facebook event one click import</li>
+              <li>many themes</li>
+              <li>great support</li>
+            </ul>
+          </div>
+          <% end %>
+        </div>
+        <style>
+        .plan_card {
+          border-radius: 8px;
+          background: aliceblue;
+          width: 100%;
+          border: 1px solid lightgrey;
+        }
+
+        .plan_card p {
+          white-space: initial !important;
+        }
+
+        .description {
+          padding: 10px;
+        }
+        </style>
+        <div class="panel panel-default col-md-4">
+          <div class="panel-body text-center">
+            <h4>Recurring charges</h4>
+              <%= link_to 'silver PLAN', create_silver_plan_recurring_application_charge_path, class: 'btn btn-large' %>
+            <p></p>
+            <br>
+            <br>
+            <br>
+
+          </div>
+        </div>
+        <div class="panel panel-default col-md-4">
+          <div class="panel-body text-center">
+            <h4>Recurring charges</h4>
+              <%= link_to 'gold PLAN', create_gold_plan_recurring_application_charge_path, class: 'btn btn-large' %>
+            <p></p>
+            <br>
+            <br>
+            <br>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+
+
+HTML
+
+rm 'app/helpers/application_helper.rb'
+file 'app/helpers/application_helper.rb', <<-RUBY
+  module ApplicationHelper
+    def show_balance_warning?(charge)
+      (charge.balance_used.to_f / charge.capped_amount.to_f) > 0.6
+    end
+
+    def balance_used_percentage(charge)
+      (charge.balance_used.to_f / charge.capped_amount.to_f) * 100
+    end
+  end
+
+RUBY
+
+
+
+
+
+
+
+
+
+
+end
+#RECURRING CHARGE
 
   file 'app/javascript/components/main.jsx', <<-JS
   import React, { Component } from 'react';
