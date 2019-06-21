@@ -892,7 +892,7 @@ HTML
 
 
 # index.html
-rm 'app/views/home/index.html.erb'
+run 'rm app/views/home/index.html.erb'
 file 'app/views/home/index.html.erb', <<-HTML
   <% content_for :javascript do %>
   <script type="text/javascript">
@@ -993,7 +993,7 @@ file 'app/views/home/index.html.erb', <<-HTML
 
 HTML
 
-rm 'app/helpers/application_helper.rb'
+run 'rm app/helpers/application_helper.rb'
 file 'app/helpers/application_helper.rb', <<-RUBY
   module ApplicationHelper
     def show_balance_warning?(charge)
