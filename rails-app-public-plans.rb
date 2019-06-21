@@ -250,24 +250,25 @@ after_bundle do
         mount ShopifyApp::Engine, at: '/'
         # root to: 'pages#home'
         namespace :api, defaults: { format: :json } do
-          namespace :v1 do
-            get 'products', to: 'products#index'
-          end
+         namespace :v1 do
+           get 'products', to: 'products#index'
+         end
         end
         # For details on the DSL available within this file, see http://guides.rubyonrails.org/routing.html
-      end
-
-
-      resource :recurring_application_charge, only: [:show, :create_free_plan, :create_silver_plan, :create_gold_plan, :destroy] do
-        collection do
-          get :create_free_plan, to: 'recurring_application_charges#create_free_plan'
-          get :create_silver_plan, to: 'recurring_application_charges#create_silver_plan'
-          get :create_gold_plan, to: 'recurring_application_charges#create_gold_plan'
-          get :show, to: 'recurring_application_charges#show'
-          get :callback
-          post :customize
+        resource :recurring_application_charge, only: [:show, :create_free_plan, :create_silver_plan, :create_gold_plan, :destroy] do
+          collection do
+            get :create_free_plan, to: 'recurring_application_charges#create_free_plan'
+            get :create_silver_plan, to: 'recurring_application_charges#create_silver_plan'
+            get :create_gold_plan, to: 'recurring_application_charges#create_gold_plan'
+            get :show, to: 'recurring_application_charges#show'
+            get :callback
+            post :customize
+          end
         end
       end
+
+
+
 
     RUBY
   end
@@ -660,7 +661,7 @@ file 'app/controllers/recurring_application_charges_controller.rb', <<-RUBY
                   price: RECURRINGPRICE,
                   return_url: callback_recurring_application_charge_url,
                   test: true,
-                  trial_days: 7
+                  trial_days: FREETRIAL,
                   # capped_amount: 4.99,
                   terms: "Great things"
                 },)
@@ -866,7 +867,7 @@ file 'app/views/home/home.html.erb', <<-HTML
 
   <ul>
     <% @products.each do |product| %>
-      <li><%= link_to product.title, "https://#{@shop_session.domain}/admin/products/#{product.id}", target: "_top" %></li>
+      <li><%= link_to product.title, "https://\#{@shop_session.domain}/admin/products/#{product.id}", target: "_top" %></li>
     <% end %>
   </ul>
 
