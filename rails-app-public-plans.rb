@@ -247,6 +247,7 @@ after_bundle do
     file 'config/routes.rb', <<-RUBY
       Rails.application.routes.draw do
         root :to => 'home#index'
+        get :home, to: 'home#home'
         mount ShopifyApp::Engine, at: '/'
         # root to: 'pages#home'
         namespace :api, defaults: { format: :json } do
@@ -658,10 +659,10 @@ file 'app/controllers/recurring_application_charges_controller.rb', <<-RUBY
       # unless ShopifyAPI::RecurringApplicationCharge.current
           @recurring_application_charge = ShopifyAPI::RecurringApplicationCharge.new({
                   name: "#{RECURRINGPRICE} Plan",
-                  price: RECURRINGPRICE,
+                  price: #{RECURRINGPRICE},
                   return_url: callback_recurring_application_charge_url,
                   test: true,
-                  trial_days: FREETRIAL,
+                  trial_days: #{FREETRIAL},
                   # capped_amount: 4.99,
                   terms: "Great things"
                 },)
@@ -693,7 +694,7 @@ file 'app/controllers/recurring_application_charges_controller.rb', <<-RUBY
       # else
       #   redirect_to_correct_path(@recurring_application_charge)
       # end
-    end
+    #end
 
     def customize
       @recurring_application_charge.customize(params[:recurring_application_charge])
