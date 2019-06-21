@@ -871,11 +871,11 @@ file 'app/controllers/recurring_application_charges_controller.rb', <<-RUBY
     def create_silver_plan
       # unless ShopifyAPI::RecurringApplicationCharge.current
           @recurring_application_charge = ShopifyAPI::RecurringApplicationCharge.new({
-                  name: "#{RECURRINGPRICE} Plan",
-                  price: #{RECURRINGPRICE},
+                  name: "19 Plan",
+                  price: 19,
                   return_url: callback_recurring_application_charge_url,
                   test: true,
-                  trial_days: #{FREETRIAL},
+                  trial_days: 19,
                   # capped_amount: 4.99,
                   terms: "Great things"
                 },)
@@ -889,25 +889,24 @@ file 'app/controllers/recurring_application_charges_controller.rb', <<-RUBY
       # end
     end
 
-    #def create_gold_plan
-      # unless ShopifyAPI::RecurringApplicationCharge.current
-          # @recurring_application_charge = ShopifyAPI::RecurringApplicationCharge.new({
-          #         name: "Calendar Easy Gold Plan",
-          #         price: 11.99,
-          #         return_url: callback_recurring_application_charge_url,
-          #         test: true,
-          #         trial_days: 15,
-          #         capped_amount: 100,
-          #         terms: "unlimited events, google cal sync"},)
-          # if @recurring_application_charge.save
-          #   @tokens = @recurring_application_charge.confirmation_url
-          #   redirect_to @recurring_application_charge.confirmation_url
-          # end
+    def create_gold_plan
+      unless ShopifyAPI::RecurringApplicationCharge.current
+          @recurring_application_charge = ShopifyAPI::RecurringApplicationCharge.new({
+                  name: "Calendar Easy Gold Plan",
+                  price: 11.99,
+                  return_url: callback_recurring_application_charge_url,
+                  trial_days: 15,
+                  capped_amount: 100,
+                  terms: "unlimited events, google cal sync"},)
+          if @recurring_application_charge.save
+            @tokens = @recurring_application_charge.confirmation_url
+            redirect_to @recurring_application_charge.confirmation_url
+          end
 
-      # else
-      #   redirect_to_correct_path(@recurring_application_charge)
-      # end
-    #end
+      else
+        redirect_to_correct_path(@recurring_application_charge)
+      end
+    end
 
     def customize
       @recurring_application_charge.customize(params[:recurring_application_charge])
@@ -948,21 +947,25 @@ file 'app/controllers/recurring_application_charges_controller.rb', <<-RUBY
 
     def redirect_to_correct_path(recurring_application_charge)
       if recurring_application_charge.try(:capped_amount)
-        redirect_to root_path
+        redirect_to home_path
       else
-        redirect_to root_path
+        redirect_to home_path
       end
     end
 
   end
 
+
+
 RUBY
 
   run 'rm app/controllers/home_controller.rb'
   file 'app/controllers/home_controller.rb', <<-RUBY
-  # frozen_string_literal: true
+    # frozen_string_literal: true
   class HomeController < ShopifyApp::AuthenticatedController
     layout "application"
+    before_action :protect_plan
+
     def home
       @products = ShopifyAPI::Product.find(:all, params: { limit: 10 })
       @webhooks = ShopifyAPI::Webhook.find(:all)
@@ -974,15 +977,21 @@ RUBY
       else
         redirect_to shopify_app_url
       end
+    end
 
+    private
+
+    def protect_plan
       @plan = ShopifyAPI::RecurringApplicationCharge.current
-
-      if @plan
+      if !@plan
+        redirect_to root_url
+      else
         redirect_to home_url
       end
-
     end
   end
+
+
 
 
 
@@ -1108,99 +1117,100 @@ HTML
 # index.html
 run 'rm app/views/home/index.html.erb'
 file 'app/views/home/index.html.erb', <<-HTML
-  <% content_for :javascript do %>
+   <% content_for :javascript do %>
   <script type="text/javascript">
   ShopifyApp.ready(function() {
     ShopifyApp.Bar.initialize({ title: "Home" });
   });
   </script>
   <% end %>
-  <div class="om-container">
+  <div class="container">
+    <div class="row">
 
 
-    <div class="description">
-      <h1>Calendar Easy</h1>
-      <p>This app allow you to display on any page you want, all your events, in a beautiful calendar, also as a list below</p>
-      <p>Each time you create, update or delete an event, the page is updated</p>
-      <p>With our great Chrome extension, Addfacebook event in one click</p>
-    </div>
-
-    <% if !@plan.nil? %>
-    <p>Your current plan is
-      <%= @plan.name%>
-    </p>
-    <% end %>
-    <br>
-    <hr><br>
-    <!-- If you have already an event go see your Calendar page -->
-    <div class="section">
-      <div class="col-md-12">
-        <!--     <div class="panel panel-default col-md-4">
-        <div class="panel-body text-center">
-          <h4>FREE PLAN</h4>
-          <%#= link_to 'Choose Free Plan', create_free_plan_recurring_application_charge_path, class: 'btn btn-large' %>
-          <p>1 calendar max, 10 events max.</p>
-          <br>
-          <br>
-
-        </div>
-      </div> -->
-        <div class="col-md-12">
-          <%= link_to create_silver_plan_recurring_application_charge_path,  class: 'btn plan_card' do %>
-          <div class="panel-body text-center">
-            <h4>LET'S TRY</h4>
-            <h5>7 days trial, Stop when you want</h5>
-            <ul style="text-align: left">
-              <li>unlimited calendars</li>
-              <li>unlimited events</li>
-              <li>facebook event one click import</li>
-              <li>many themes</li>
-              <li>great support</li>
-            </ul>
-          </div>
-          <% end %>
-        </div>
-        <style>
-        .plan_card {
-          border-radius: 8px;
-          background: aliceblue;
-          width: 100%;
-          border: 1px solid lightgrey;
-        }
-
-        .plan_card p {
-          white-space: initial !important;
-        }
-
-        .description {
-          padding: 10px;
-        }
-        </style>
-        <div class="panel panel-default col-md-4">
-          <div class="panel-body text-center">
-            <h4>Recurring charges</h4>
-              <%= link_to 'silver PLAN', create_silver_plan_recurring_application_charge_path, class: 'btn btn-large' %>
-            <p></p>
-            <br>
-            <br>
-            <br>
-
-          </div>
-        </div>
-        <div class="panel panel-default col-md-4">
-          <div class="panel-body text-center">
-            <h4>Recurring charges</h4>
-              <%= link_to 'gold PLAN', create_gold_plan_recurring_application_charge_path, class: 'btn btn-large' %>
-            <p></p>
-            <br>
-            <br>
-            <br>
-
-          </div>
-        </div>
+      <div class="description">
+        <h1>Name of the APP</h1>
+        <br>
+        <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Nulla itaque facilis quasi provident explicabo perferendis non repellendus blanditiis expedita cumque voluptatem maiores voluptas veritatis odio, sunt necessitatibus perspiciatis molestias totam.</p>
+        <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Minus cumque ab distinctio, veritatis fugit, impedit animi. Officia illo, quos excepturi, sunt, odit a amet ex perferendis harum dicta consequuntur nulla.</p>
+        <p></p>
       </div>
-    </div>
+
+
+      <% if !@plan.nil? %>
+        <p>Your current plan is
+          <%= @plan.name %>
+        </p>
+      <% end %>
+      <br>
+      </div>
+      <hr><br>
+      <!-- If you have already an event go see your Calendar page -->
+      <div class="row plan_cards">
+
+          <div class="col-md-4">
+            <%= link_to create_free_plan_recurring_application_charge_path do %>
+            <div style="--top-bar-background:#00848e; --top-bar-color:#f9fafb; --top-bar-background-lighter:#1d9ba4;">
+              <div class="Polaris-Card">
+                <div class="Polaris-Card__Header">
+                  <h2 class="Polaris-Heading">LET'S TRY - FREEMIUM</h2>
+                  <h5>Have some stuff for free</h5>
+                </div>
+                <div class="Polaris-Card__Section">
+                  <ul style="text-align: left">
+                    <li>2 Things</li>
+                    <li>3 other things</li>
+                    <li>great support</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            <% end %>
+          </div>
+          <div class="col-md-4">
+            <%= link_to create_silver_plan_recurring_application_charge_path do %>
+            <div style="--top-bar-background:#00848e; --top-bar-color:#f9fafb; --top-bar-background-lighter:#1d9ba4;">
+              <div class="Polaris-Card">
+                <div class="Polaris-Card__Header">
+                  <h2 class="Polaris-Heading">LET'S TRY - Silver</h2>
+                  <h5>7 days trial, Stop when you want</h5>
+                </div>
+                <div class="Polaris-Card__Section">
+                  <ul style="text-align: left">
+                    <li>10 Things</li>
+                    <li>unlimited other things</li>
+                    <li>great support</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            <% end %>
+          </div>
+          <div class="col-md-4">
+            <%= link_to create_gold_plan_recurring_application_charge_path do %>
+            <div style="--top-bar-background:#00848e; --top-bar-color:#f9fafb; --top-bar-background-lighter:#1d9ba4;">
+              <div class="Polaris-Card">
+                <div class="Polaris-Card__Header">
+                  <h2 class="Polaris-Heading">LET'S TRY - GOLD</h2>
+                  <h5>7 days trial, Stop when you want</h5>
+                </div>
+                <div class="Polaris-Card__Section">
+                  <ul style="text-align: left">
+                    <li>unlimited things</li>
+                    <li>unlimited other things</li>
+                    <li>great support</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            <% end %>
+          </div>
+
+      </div>
+
   </div>
+
+
 
 
 
