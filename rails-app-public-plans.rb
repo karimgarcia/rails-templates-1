@@ -622,6 +622,219 @@ JS
 JS
 
 
+  file 'app/javascript/components/main.jsx', <<-JS
+  import React, { Component } from 'react';
+  import ResourcesList from './resources_list'
+
+
+  class Main extends Component {
+    constructor(props) {
+      super(props)
+      this.state = {
+        products: []
+      };
+    }
+
+    componentDidMount() {
+      this.fetchProducts({page_id: 1})
+      // this.fetchSchedules()
+    }
+
+    handlePageChange = (params) => {
+      this.fetchProducts(params)
+    }
+
+    fetchProducts = (params) => {
+      fetch(`/api/v1/products?page=${params["page_id"]}&title=${params["searchValue"]}`, {
+        method: 'GET',
+        // body: JSON.stringify({active_page: this.state.activePage}), // or 'PUT',
+        headers:{
+          'Content-Type': 'application/json'
+        }
+      }).then(res => res.json())
+      .then( (response) =>  {
+        console.log(response.products),
+        this.setState({ products: response.products }) })
+      .catch(error => console.error('Error:', error));
+    }
+
+
+    render() {
+      return (
+        <div>
+          <ResourcesList
+            products={this.state.products}
+            products_count={this.state.products_count}
+            handlePageChange={this.handlePageChange}
+          />
+            <br/>
+          <h3>Mes listes</h3>
+            <br/>
+        </div>
+
+      );
+    }
+  }
+
+  export default Main;
+JS
+
+  file 'app/javascript/components/resources_list.jsx', <<-JS
+  import React, { Component } from 'react';
+import {Avatar, Card, List, ResourceList, FilterType, Select, TextField, TextStyle, Pagination } from '@shopify/polaris';
+
+
+class ResourcesList extends Component {
+  state = {
+    searchValue: '',
+    appliedFilters: [
+      {
+        key: 'accountStatusFilter',
+        value: 'Account enabled',
+      },
+    ],
+    page_id: 1,
+    isFirstPage: true,
+    isLastPage: false,
+  };
+
+  handleSearchChange = (searchValue) => {
+    this.setState({searchValue});
+    console.log(this.state.searchValue);
+  };
+
+  handleFiltersChange = (appliedFilters) => {
+    this.setState({appliedFilters});
+  };
+
+  // PAGINATION
+  nextPage = () => {
+    console.log('Next');
+    this.setState({page_id: this.state.page_id += 1})
+    this.setState({isFirstPage: false})
+    this.props.handlePageChange({page_id: this.state.page_id })
+  };
+
+  prevPage = () => {
+    console.log('Previous');
+    this.setState({page_id: this.state.page_id -= 1});
+    (this.state.page_id == 1) ? this.setState({isFirstPage: true}) : '';
+    this.props.handlePageChange({page_id: this.state.page_id });
+  };
+  // PAGINATION
+
+
+  renderItem = (item) => {
+    const {id, url, title, image, published_at} = item;
+    const img_src = image ? image.src : `https://via.placeholder.com/150/`
+    const media = <img style={{maxHeight: "60px", width: "60px", objectFit: "contain"}} src={img_src} />;
+
+    return (
+      <ResourceList.Item id={id} url={url} media={media}>
+          <TextStyle>{title}</TextStyle>
+      </ResourceList.Item>
+    );
+  };
+
+  render() {
+    const resourceName = {
+      singular: 'product',
+      plural: 'products',
+    };
+    const {
+      isFirstPage,
+      isLastPage,
+    } = this.state;
+
+    const items = this.props.products;
+
+    const filters = [
+      {
+        key: 'orderCountFilter',
+        label: 'Number of orders',
+        operatorText: 'is greater than',
+        type: FilterType.TextField,
+      },
+      {
+        key: 'accountStatusFilter',
+        label: 'Account status',
+        operatorText: 'is',
+        type: FilterType.Select,
+        options: ['Enabled', 'Invited', 'Not invited', 'Declined'],
+      },
+    ];
+
+    const filterControl = (
+      <ResourceList.FilterControl
+        filters={filters}
+        appliedFilters={this.state.appliedFilters}
+        onFiltersChange={this.handleFiltersChange}
+        searchValue={this.state.searchValue}
+        onSearchChange={this.handleSearchChange}
+        additionalAction={{
+          content: 'Save',
+          onAction: () => this.props.handlePageChange({ searchValue: this.state.searchValue })
+        }}
+      />
+
+    );
+
+    return (
+      <Card>
+        <ResourceList
+          resourceName={resourceName}
+          items={items}
+          renderItem={this.renderItem}
+          filterControl={filterControl}
+
+        />
+        <Pagination
+          hasPrevious={!isFirstPage}
+          hasNext={items.length == 10 }
+          onPrevious={this.prevPage}
+          onNext={this.nextPage}
+        />
+      </Card>
+    );
+  }
+}
+
+export default ResourcesList;
+
+JS
+
+run 'rm app/views/home/index.html.erb'
+file 'app/views/home/index.html.erb', <<-HTML
+<h2>Products</h2>
+
+<%= javascript_pack_tag 'hello_react' %>
+
+<div id="app"></div>
+
+<ul>
+  <% @products.each do |product| %>
+    <li><%= link_to product.title, "https://\#{@shop_session.domain}/admin/products/\#{product.id}", target: "_top" %></li>
+  <% end %>
+</ul>
+
+<hr>
+
+<h2>Webhooks</h2>
+
+<% if @webhooks.present? %>
+  <ul>
+    <% @webhooks.each do |webhook| %>
+      <li><%= webhook.topic %> : <%= webhook.address %></li>
+    <% end %>
+  </ul>
+<% else %>
+  <p>This app has not created any webhooks for this Shop. Add webhooks to your ShopifyApp initializer if you need webhooks</p>
+<% end %>
+
+HTML
+
+
+
 #RECURRING CHARGE
 if RECURRING
 
@@ -1019,217 +1232,6 @@ RUBY
 
 end
 #RECURRING CHARGE
-
-  file 'app/javascript/components/main.jsx', <<-JS
-  import React, { Component } from 'react';
-  import ResourcesList from './resources_list'
-
-
-  class Main extends Component {
-    constructor(props) {
-      super(props)
-      this.state = {
-        products: []
-      };
-    }
-
-    componentDidMount() {
-      this.fetchProducts({page_id: 1})
-      // this.fetchSchedules()
-    }
-
-    handlePageChange = (params) => {
-      this.fetchProducts(params)
-    }
-
-    fetchProducts = (params) => {
-      fetch(`/api/v1/products?page=${params["page_id"]}&title=${params["searchValue"]}`, {
-        method: 'GET',
-        // body: JSON.stringify({active_page: this.state.activePage}), // or 'PUT',
-        headers:{
-          'Content-Type': 'application/json'
-        }
-      }).then(res => res.json())
-      .then( (response) =>  {
-        console.log(response.products),
-        this.setState({ products: response.products }) })
-      .catch(error => console.error('Error:', error));
-    }
-
-
-    render() {
-      return (
-        <div>
-          <ResourcesList
-            products={this.state.products}
-            products_count={this.state.products_count}
-            handlePageChange={this.handlePageChange}
-          />
-            <br/>
-          <h3>Mes listes</h3>
-            <br/>
-        </div>
-
-      );
-    }
-  }
-
-  export default Main;
-JS
-
-  file 'app/javascript/components/resources_list.jsx', <<-JS
-  import React, { Component } from 'react';
-import {Avatar, Card, List, ResourceList, FilterType, Select, TextField, TextStyle, Pagination } from '@shopify/polaris';
-
-
-class ResourcesList extends Component {
-  state = {
-    searchValue: '',
-    appliedFilters: [
-      {
-        key: 'accountStatusFilter',
-        value: 'Account enabled',
-      },
-    ],
-    page_id: 1,
-    isFirstPage: true,
-    isLastPage: false,
-  };
-
-  handleSearchChange = (searchValue) => {
-    this.setState({searchValue});
-    console.log(this.state.searchValue);
-  };
-
-  handleFiltersChange = (appliedFilters) => {
-    this.setState({appliedFilters});
-  };
-
-  // PAGINATION
-  nextPage = () => {
-    console.log('Next');
-    this.setState({page_id: this.state.page_id += 1})
-    this.setState({isFirstPage: false})
-    this.props.handlePageChange({page_id: this.state.page_id })
-  };
-
-  prevPage = () => {
-    console.log('Previous');
-    this.setState({page_id: this.state.page_id -= 1});
-    (this.state.page_id == 1) ? this.setState({isFirstPage: true}) : '';
-    this.props.handlePageChange({page_id: this.state.page_id });
-  };
-  // PAGINATION
-
-
-  renderItem = (item) => {
-    const {id, url, title, image, published_at} = item;
-    const img_src = image ? image.src : `https://via.placeholder.com/150/`
-    const media = <img style={{maxHeight: "60px", width: "60px", objectFit: "contain"}} src={img_src} />;
-
-    return (
-      <ResourceList.Item id={id} url={url} media={media}>
-          <TextStyle>{title}</TextStyle>
-      </ResourceList.Item>
-    );
-  };
-
-  render() {
-    const resourceName = {
-      singular: 'product',
-      plural: 'products',
-    };
-    const {
-      isFirstPage,
-      isLastPage,
-    } = this.state;
-
-    const items = this.props.products;
-
-    const filters = [
-      {
-        key: 'orderCountFilter',
-        label: 'Number of orders',
-        operatorText: 'is greater than',
-        type: FilterType.TextField,
-      },
-      {
-        key: 'accountStatusFilter',
-        label: 'Account status',
-        operatorText: 'is',
-        type: FilterType.Select,
-        options: ['Enabled', 'Invited', 'Not invited', 'Declined'],
-      },
-    ];
-
-    const filterControl = (
-      <ResourceList.FilterControl
-        filters={filters}
-        appliedFilters={this.state.appliedFilters}
-        onFiltersChange={this.handleFiltersChange}
-        searchValue={this.state.searchValue}
-        onSearchChange={this.handleSearchChange}
-        additionalAction={{
-          content: 'Save',
-          onAction: () => this.props.handlePageChange({ searchValue: this.state.searchValue })
-        }}
-      />
-
-    );
-
-    return (
-      <Card>
-        <ResourceList
-          resourceName={resourceName}
-          items={items}
-          renderItem={this.renderItem}
-          filterControl={filterControl}
-
-        />
-        <Pagination
-          hasPrevious={!isFirstPage}
-          hasNext={items.length == 10 }
-          onPrevious={this.prevPage}
-          onNext={this.nextPage}
-        />
-      </Card>
-    );
-  }
-}
-
-export default ResourcesList;
-
-JS
-
-run 'rm app/views/home/index.html.erb'
-file 'app/views/home/index.html.erb', <<-HTML
-<h2>Products</h2>
-
-<%= javascript_pack_tag 'hello_react' %>
-
-<div id="app"></div>
-
-<ul>
-  <% @products.each do |product| %>
-    <li><%= link_to product.title, "https://\#{@shop_session.domain}/admin/products/\#{product.id}", target: "_top" %></li>
-  <% end %>
-</ul>
-
-<hr>
-
-<h2>Webhooks</h2>
-
-<% if @webhooks.present? %>
-  <ul>
-    <% @webhooks.each do |webhook| %>
-      <li><%= webhook.topic %> : <%= webhook.address %></li>
-    <% end %>
-  </ul>
-<% else %>
-  <p>This app has not created any webhooks for this Shop. Add webhooks to your ShopifyApp initializer if you need webhooks</p>
-<% end %>
-
-HTML
 
 
   inject_into_file 'config/webpack/environment.js', before: 'module.exports' do
