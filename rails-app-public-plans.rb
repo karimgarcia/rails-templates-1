@@ -819,7 +819,7 @@ file 'app/views/recurring_application_charges/show.html.erb', <<-HTML
                     <%= @recurring_application_charge.name %>
                   </td>
                   <td>
-                    $<%= @recurring_application_charge.price %>
+                    <%= @recurring_application_charge.price %>
                   </td>
                   <td>
                     <%= @recurring_application_charge.trial_days %>
@@ -867,7 +867,7 @@ file 'app/views/home/home.html.erb', <<-HTML
 
   <ul>
     <% @products.each do |product| %>
-      <li><%= link_to product.title, "https://\#{@shop_session.domain}/admin/products/#{product.id}", target: "_top" %></li>
+      <li><%= link_to product.title, "https://\#{@shop_session.domain}/admin/products/\#{product.id}", target: "_top" %></li>
     <% end %>
   </ul>
 
