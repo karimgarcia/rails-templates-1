@@ -443,7 +443,11 @@ RUBY
         # before_action :set_todo_item_comment, only: %i[show update destroy]
         # GET /todos/:todo_id/items/:item_id/comments
         def index
-          @products = ShopifyAPI::Product.find(:all, params: {limit: 10, page: params[:page], title: params[:searchValue]})
+          if params[:title] != 'undefined'
+            @products = ShopifyAPI::Product.find(:all, params: {limit: 10, page: params[:page], title: params[:title]})
+          else
+            @products = ShopifyAPI::Product.find(:all, params: {limit: 10, page: params[:page]})
+          end
           json_response({products: @products})
         end
         # # GET /todos/:todo_id/items/:item_id/comments/:id
@@ -623,7 +627,7 @@ JS
 
 
   file 'app/javascript/components/main.jsx', <<-JS
-  import React, { Component } from 'react';
+    import React, { Component } from 'react';
   import ResourcesList from './resources_list'
 
 
@@ -666,6 +670,7 @@ JS
             products={this.state.products}
             products_count={this.state.products_count}
             handlePageChange={this.handlePageChange}
+            fetchProducts={this.fetchProducts}
           />
             <br/>
           <h3>Mes listes</h3>
@@ -677,6 +682,7 @@ JS
   }
 
   export default Main;
+
 JS
 
   file 'app/javascript/components/resources_list.jsx', <<-JS
@@ -688,10 +694,10 @@ class ResourcesList extends Component {
   state = {
     searchValue: '',
     appliedFilters: [
-      {
-        key: 'accountStatusFilter',
-        value: 'Account enabled',
-      },
+      // {
+      //   key: 'accountStatusFilter',
+      //   value: 'Account enabled',
+      // },
     ],
     page_id: 1,
     isFirstPage: true,
@@ -699,8 +705,9 @@ class ResourcesList extends Component {
   };
 
   handleSearchChange = (searchValue) => {
-    this.setState({searchValue});
-    console.log(this.state.searchValue);
+    this.setState({searchValue: searchValue});
+    this.props.fetchProducts({page_id: 1, searchValue: searchValue })
+
   };
 
   handleFiltersChange = (appliedFilters) => {
@@ -800,6 +807,8 @@ class ResourcesList extends Component {
 }
 
 export default ResourcesList;
+
+
 
 JS
 
