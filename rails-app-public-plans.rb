@@ -39,8 +39,8 @@ gem 'rails', '#{Rails.version}'
 gem 'redis'
 
 gem 'autoprefixer-rails'
-# gem 'bootstrap', '~> 4.3.1'
-# gem 'bootstrap-sass', '~> 3.3'
+gem 'bootstrap', '~> 4.3.1'
+gem 'bootstrap-sass', '~> 3.3'
 gem 'font-awesome-sass', '~> 5.0.9'
 gem 'sass-rails'
 gem 'simple_form'
@@ -305,109 +305,7 @@ TXT
   SHOPIFY_CLIENT_API_SECRET: #{SECRET_KEY}
 
 RUBY
-  
-  # Webpack
-  #########################################
-  
-  file 'config/webpacker.yml', <<-RUBY
-  
-  default: &default
-  source_path: app/javascript
-  source_entry_path: packs
-  public_root_path: public
-  public_output_path: packs
-  cache_path: tmp/cache/webpacker
-  check_yarn_integrity: false
-  webpack_compile_output: false
 
-  # Additional paths webpack should lookup modules
-  # ['app/assets', 'engine/foo/app/assets']
-  resolved_paths: []
-
-  # Reload manifest.json on all requests so we reload latest compiled packs
-  cache_manifest: false
-
-  # Extract and emit a css file
-  extract_css: false
-
-  static_assets_extensions:
-    - .jpg
-    - .jpeg
-    - .png
-    - .gif
-    - .tiff
-    - .ico
-    - .svg
-    - .eot
-    - .otf
-    - .ttf
-    - .woff
-    - .woff2
-
-  extensions:
-    - .mjs
-    - .js
-    - .sass
-    - .scss
-    - .css
-    - .module.sass
-    - .module.scss
-    - .module.css
-    - .png
-    - .svg
-    - .gif
-    - .jpeg
-    - .jpg
-
-development:
-  <<: *default
-  compile: true
-
-  # Verifies that correct packages and versions are installed by inspecting package.json, yarn.lock, and node_modules
-  check_yarn_integrity: true
-
-  # Reference: https://webpack.js.org/configuration/dev-server/
-  dev_server:
-    https: false
-    host: localhost
-    port: 3035
-    public: localhost:3035
-    hmr: false
-    # Inline should be set to true if using HMR
-    inline: true
-    overlay: true
-    compress: true
-    disable_host_check: true
-    use_local_ip: false
-    quiet: false
-    pretty: false
-    headers:
-      'Access-Control-Allow-Origin': '*'
-    watch_options:
-      ignored: '**/node_modules/**'
-
-
-test:
-  <<: *default
-  compile: true
-
-  # Compile test packs to a separate directory
-  public_output_path: packs-test
-
-production:
-  <<: *default
-
-  # Production depends on precompilation of packs prior to booting for performance.
-  compile: false
-
-  # Extract and emit a css file
-  extract_css: true
-
-  # Cache manifest.json for performance
-  cache_manifest: true
-  
-  
-RUBY
 
   # Devise install + user
   ########################################
