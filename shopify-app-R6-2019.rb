@@ -122,6 +122,8 @@ file 'app/assets/javascripts/application.js', <<-JS
 //= require_tree .
 JS
 
+
+
 # Dev environment
 ########################################
 gsub_file('config/environments/development.rb', /config\.assets\.debug.*/, 'config.assets.debug = false')
@@ -820,6 +822,13 @@ file 'package.json', <<-JS
     }
   }
 
+JS
+
+run 'rm app/assets/config/manifest.js'
+file 'app/assets/config/manifest.js', <<-JS
+//= link_tree ../images
+//= link_directory ../stylesheets .css
+//= link application.js
 JS
 
 run 'rm app/assets/stylesheets/application.scss'
