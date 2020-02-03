@@ -1,5 +1,6 @@
 run 'pgrep spring | xargs kill -9'
 
+
 p "Name of the app (must be the same of the folder)"
 APP_NAME = STDIN.gets.downcase.chomp
 
