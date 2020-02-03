@@ -318,7 +318,7 @@ RUBY
   file 'app/controllers/application_controller.rb', <<-RUBY
 class ApplicationController < ShopifyApp::AuthenticatedController
   protect_from_forgery with: :exception
-  include Response
+  # include Response
   # before_action :authenticate_user!
 end
 RUBY
@@ -583,6 +583,17 @@ File.open('config/application.rb', "w") {|file| file.puts new_contents }
      # Do something later
     end
   end
+RUBY
+
+  # App controller
+  ########################################
+  run 'rm app/controllers/application_controller.rb'
+  file 'app/controllers/application_controller.rb', <<-RUBY
+class ApplicationController < ShopifyApp::AuthenticatedController
+  protect_from_forgery with: :exception
+  include Response
+  # before_action :authenticate_user!
+end
 RUBY
 
   ### Shopify APP
