@@ -117,7 +117,7 @@ inject_into_file 'app/assets/stylesheets/config/_bootstrap_variables.scss', befo
 "
 end
 
-run 'rm app/assets/javascripts/application.js'
+# run 'rm app/assets/javascripts/application.js'
 file 'app/assets/javascripts/application.js', <<-JS
 //= require rails-ujs
 //= require_tree .
