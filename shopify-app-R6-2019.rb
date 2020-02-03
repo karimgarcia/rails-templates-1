@@ -1339,7 +1339,7 @@ JS
   run 'curl -L https://raw.githubusercontent.com/lewagon/rails-templates/master/.rubocop.yml > .rubocop.yml'
 
 
-run 'rails yarn install'
+run 'rails yarn install --check-files'
 
   # Git
   ########################################
