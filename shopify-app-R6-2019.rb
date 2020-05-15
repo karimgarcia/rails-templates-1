@@ -871,7 +871,7 @@ file 'app/views/home/index.html.erb', <<-HTML
 
 <ul>
   <% @products.each do |product| %>
-    <li><%= link_to product.title, "https://\#{@shop_session.domain}/admin/products/\#{product.id}", target: "_top" %></li>
+    <li><%= link_to product.title, "https://\#{JSON.parse(session.to_json)['shopify.omniauth_params']['shop']}/admin/products/\#{product.id}", target: "_top" %></li>
   <% end %>
 </ul>
 
