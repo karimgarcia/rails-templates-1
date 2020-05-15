@@ -562,7 +562,7 @@ RUBY
 
       # Don't generate system test files.
       config.generators.system_tests = nil
-      config.api_version = '2019-04'
+      config.api_version = '2020-04'
 
     end
   end
