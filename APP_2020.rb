@@ -1,4 +1,4 @@
-run 'pgrep spring | xargs kill -9'
+run "if uname | grep -q 'Darwin'; then pgrep spring | xargs kill -9; fi"
 
 
 p "Name of the app (must be the same of the folder)"
@@ -9,7 +9,6 @@ p "(if you don't, create a new app in your partner shoify account)"
 
 
 API_KEY = STDIN.gets.downcase.chomp
-
 p "enter my SECRETKEY: "
 SECRET_KEY = STDIN.gets.downcase.chomp
 
@@ -24,50 +23,44 @@ if RECURRING
 else
   p "do you want a One time charge ? (y/n): "
   ONETIMECHARGE = (STDIN.gets.downcase.chomp == 'y')
-  p "How much it cost ?: "
-  ONETIMEPRICE = STDIN.gets.downcase.chomp
+  if ONETIMECHARGE
+    p "How much it cost ?: "
+    ONETIMEPRICE = STDIN.gets.downcase.chomp
+  end
 end
+
 
 # GEMFILE
 ########################################
-run 'rm Gemfile'
-file 'Gemfile', <<-RUBY
-source 'https://rubygems.org'
-ruby '#{RUBY_VERSION}'
+inject_into_file 'Gemfile', before: 'group :development, :test do' do
+  <<~RUBY
+    gem 'autoprefixer-rails'
+    gem 'font-awesome-sass'
+    gem 'sassc-rails'
+    gem 'simple_form'
+    gem 'uglifier'
+    gem 'webpacker'
+    gem 'shopify_app'
+    gem 'rack-cors', require: 'rack/cors'
 
-#{"gem 'bootsnap', require: false" if Rails.version >= "5.2"}
-gem 'jbuilder', '~> 2.0'
-gem 'pg', '~> 0.21'
-gem 'puma'
-gem 'rails', '#{Rails.version}'
-gem 'redis'
-
-# gem 'bootstrap', '~> 4.3.1'
-# gem 'bootstrap-sass', '~> 3.3'
-
-gem 'autoprefixer-rails'
-gem 'font-awesome-sass', '~> 5.6.1'
-gem 'sassc-rails'
-gem 'simple_form'
-gem 'uglifier'
-gem 'webpacker'
-gem 'shopify_app'
-gem 'rack-cors', require: 'rack/cors'
-
-
-group :development do
-  gem 'web-console', '>= 3.3.0'
+  RUBY
 end
 
-group :development, :test do
+inject_into_file 'Gemfile', after: 'group :development, :test do' do
+  <<-RUBY
   gem 'pry-byebug'
   gem 'pry-rails'
+  gem 'dotenv-rails'
   gem 'listen', '~> 3.0.5'
   gem 'spring'
   gem 'spring-watcher-listen', '~> 2.0.0'
-  gem 'dotenv-rails'
+  RUBY
 end
-RUBY
+
+gsub_file('Gemfile', /# gem 'redis'/, "gem 'redis'")
+
+
+
 
 # Ruby version
 ########################################
@@ -369,17 +362,17 @@ ShopifyApp.configure do |config|
                                   # https://help.shopify.com/en/api/getting-started/authentication/oauth/scopes
   config.embedded_app = false
   config.after_authenticate_job = false
-  config.shop_session_repository = 'Shop'
+  config.shop_session_repository = 'ShopifyApp::InMemoryShopSessionStore'
   config.user_session_repository = 'ShopifyApp::InMemoryUserSessionStore'
-  config.api_version = '2020-07'
+  config.api_version = '2020-04'
   # config.root_url = '/nested'
   # webhook
   # config.webhooks = [
   #   {topic: 'products/create', address: "ENV['ROOT_URL']/webhooks/products_update"}
   # ]
-  # config.scripttags = [
-  #     {event:'onload', src: 'https://my-shopifyapp.herokuapp.com/fancy.js'}
-  #   ]
+  config.scripttags = [
+      {event:'onload', src: 'https://my-shopifyapp.herokuapp.com/fancy.js'}
+    ]
 end
 RUBY
 

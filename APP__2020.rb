@@ -1,5 +1,4 @@
-run 'pgrep spring | xargs kill -9'
-
+run "if uname | grep -q 'Darwin'; then pgrep spring | xargs kill -9; fi"
 
 p "Name of the app (must be the same of the folder)"
 APP_NAME = STDIN.gets.downcase.chomp
@@ -9,7 +8,6 @@ p "(if you don't, create a new app in your partner shoify account)"
 
 
 API_KEY = STDIN.gets.downcase.chomp
-
 p "enter my SECRETKEY: "
 SECRET_KEY = STDIN.gets.downcase.chomp
 
@@ -24,60 +22,36 @@ if RECURRING
 else
   p "do you want a One time charge ? (y/n): "
   ONETIMECHARGE = (STDIN.gets.downcase.chomp == 'y')
-  p "How much it cost ?: "
-  ONETIMEPRICE = STDIN.gets.downcase.chomp
+  if ONETIMECHARGE
+    p "How much it cost ?: "
+    ONETIMEPRICE = STDIN.gets.downcase.chomp
+  end
 end
+
 
 # GEMFILE
 ########################################
-run 'rm Gemfile'
-file 'Gemfile', <<-RUBY
-source 'https://rubygems.org'
-ruby '#{RUBY_VERSION}'
-
-#{"gem 'bootsnap', require: false" if Rails.version >= "5.2"}
-gem 'jbuilder', '~> 2.0'
-gem 'pg', '~> 0.21'
-gem 'puma'
-gem 'rails', '#{Rails.version}'
-gem 'redis'
-
-# gem 'bootstrap', '~> 4.3.1'
-# gem 'bootstrap-sass', '~> 3.3'
-
-gem 'autoprefixer-rails'
-gem 'font-awesome-sass', '~> 5.6.1'
-gem 'sassc-rails'
-gem 'simple_form'
-gem 'uglifier'
-gem 'webpacker'
-gem 'shopify_app'
-gem 'rack-cors', require: 'rack/cors'
-
-
-group :development do
-  gem 'web-console', '>= 3.3.0'
+inject_into_file 'Gemfile', before: 'group :development, :test do' do
+  <<~RUBY
+    gem 'autoprefixer-rails'
+    gem 'font-awesome-sass'
+    gem 'sassc-rails'
+    gem 'simple_form'
+    gem 'uglifier'
+    gem 'shopify_app'
+    gem 'rack-cors', require: 'rack/cors'
+    RUBY
 end
 
-group :development, :test do
+inject_into_file 'Gemfile', after: 'group :development, :test do' do
+  <<-RUBY
   gem 'pry-byebug'
   gem 'pry-rails'
-  gem 'listen', '~> 3.0.5'
-  gem 'spring'
-  gem 'spring-watcher-listen', '~> 2.0.0'
   gem 'dotenv-rails'
+  RUBY
 end
-RUBY
 
-# Ruby version
-########################################
-file '.ruby-version', RUBY_VERSION
-
-# Procfile
-########################################
-file 'Procfile', <<-YAML
-web: bundle exec puma -C config/puma.rb
-YAML
+gsub_file('Gemfile', /# gem 'redis'/, "gem 'redis'")
 
 # Assets
 ########################################
@@ -85,37 +59,7 @@ run 'rm -rf app/assets/stylesheets'
 run 'rm -rf vendor'
 run 'curl -L https://github.com/lewagon/stylesheets/archive/master.zip > stylesheets.zip'
 run 'unzip stylesheets.zip -d app/assets && rm stylesheets.zip && mv app/assets/rails-stylesheets-master app/assets/stylesheets'
-inject_into_file 'app/assets/stylesheets/config/_bootstrap_variables.scss', before: '// Override other variables below!' do
-"
-// Patch to make simple_form compatible with bootstrap 3
-.invalid-feedback {
-  display: none;
-  width: 100%;
-  margin-top: 0.25rem;
-  font-size: 80%;
-  color: $red;
-}
 
-.was-validated .form-control:invalid,
-.form-control.is-invalid,
-.was-validated .custom-select:invalid,
-.custom-select.is-invalid {
-  border-color: $red;
-}
-
-.was-validated .form-control:invalid ~ .invalid-feedback,
-.was-validated .form-control:invalid ~ .invalid-tooltip,
-.form-control.is-invalid ~ .invalid-feedback,
-.form-control.is-invalid ~ .invalid-tooltip,
-.was-validated .custom-select:invalid ~ .invalid-feedback,
-.was-validated .custom-select:invalid ~ .invalid-tooltip,
-.custom-select.is-invalid ~ .invalid-feedback,
-.custom-select.is-invalid ~ .invalid-tooltip {
-  display: block;
-}
-
-"
-end
 
 file 'app/assets/javascripts/application.js', <<-JS
 //= require rails-ujs
@@ -130,6 +74,21 @@ gsub_file('config/environments/development.rb', /config\.assets\.debug.*/, 'conf
 
 # Layout
 ########################################
+if Rails.version < "6"
+  scripts = <<~HTML
+    <%= javascript_include_tag 'application', 'data-turbolinks-track': 'reload', defer: true %>
+        <%= javascript_pack_tag 'application', 'data-turbolinks-track': 'reload' %>
+  HTML
+  gsub_file('app/views/layouts/application.html.erb', "<%= javascript_include_tag 'application', 'data-turbolinks-track': 'reload' %>", scripts)
+end
+gsub_file('app/views/layouts/application.html.erb', "<%= javascript_pack_tag 'application', 'data-turbolinks-track': 'reload' %>", "<%= javascript_pack_tag 'application', 'data-turbolinks-track': 'reload', defer: true %>")
+style = <<~HTML
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+      <%= stylesheet_link_tag 'application', media: 'all', 'data-turbolinks-track': 'reload' %>
+HTML
+gsub_file('app/views/layouts/application.html.erb', "<%= stylesheet_link_tag 'application', media: 'all', 'data-turbolinks-track': 'reload' %>", style)
+
+
 run 'rm app/views/layouts/application.html.erb'
 file 'app/views/layouts/application.html.erb', <<-HTML
 <!DOCTYPE html>
@@ -148,7 +107,7 @@ file 'app/views/layouts/application.html.erb', <<-HTML
     <%#= stylesheet_pack_tag 'application', media: 'all' %> <!-- Uncomment if you import CSS in app/javascript/packs/application.js -->
   </head>
   <body>
-    <%= render 'shared/navbar' %>
+    <%#= render 'shared/navbar' %>
     <%= render 'shared/flashes' %>
     <%= yield %>
     <%= javascript_include_tag 'application' %>
@@ -197,6 +156,40 @@ file 'app/views/shared/_navbar.html.erb', <<-HTML
 
 HTML
 
+
+
+# Flashes
+########################################
+file 'app/views/shared/_flashes.html.erb', <<~HTML
+  <% if notice %>
+    <div class="alert alert-info alert-dismissible fade show m-1" role="alert">
+      <%= notice %>
+      <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+      </button>
+    </div>
+  <% end %>
+  <% if alert %>
+    <div class="alert alert-warning alert-dismissible fade show m-1" role="alert">
+      <%= alert %>
+      <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+      </button>
+    </div>
+  <% end %>
+HTML
+
+run 'curl -L https://github.com/lewagon/awesome-navbars/raw/master/templates/_navbar_wagon.html.erb > app/views/shared/_navbar.html.erb'
+run 'curl -L https://raw.githubusercontent.com/lewagon/rails-templates/master/logo.png > app/assets/images/logo.png'
+
+inject_into_file 'app/views/layouts/application.html.erb', after: '<body>' do
+  <<-HTML
+
+    <%= render 'shared/navbar' %>
+    <%= render 'shared/flashes' %>
+  HTML
+end
+
 # README
 ########################################
 markdown_file_content = <<-MARKDOWN
@@ -206,12 +199,12 @@ file 'README.md', markdown_file_content, force: true
 
 # Generators
 ########################################
-generators = <<-RUBY
-config.generators do |generate|
-      generate.assets false
-      generate.helper false
-      generate.test_framework  :test_unit, fixture: false
-    end
+generators = <<~RUBY
+  config.generators do |generate|
+    generate.assets false
+    generate.helper false
+    generate.test_framework :test_unit, fixture: false
+  end
 RUBY
 
 environment generators
@@ -228,7 +221,6 @@ after_bundle do
 
   # Routes
   ########################################
-  route "root to: 'pages#home'"
   run 'rm config/routes.rb'
   file 'config/routes.rb', <<-RUBY
     Rails.application.routes.draw do
@@ -242,8 +234,6 @@ after_bundle do
       end
       # For details on the DSL available within this file, see http://guides.rubyonrails.org/routing.html
     end
-
-
 
   RUBY
 
@@ -272,35 +262,22 @@ after_bundle do
           end
         end
       end
-
-
-
-
     RUBY
   end
 
+
   # Git ignore
   ########################################
-  run 'rm .gitignore'
-  file '.gitignore', <<-TXT
-.bundle
-log/*.log
-tmp/**/*
-tmp/*
-!log/.keep
-!tmp/.keep
-*.swp
-.DS_Store
-public/assets
-public/packs
-public/packs-test
-node_modules
-development_env.yml
-production_env.yml
-yarn-error.log
-.byebug_history
-.env*
-TXT
+  append_file '.gitignore', <<~TXT
+    # Ignore .env file containing credentials.
+    .env*
+    # Ignore Mac and Linux file system files
+    *.swp
+    .DS_Store
+    development_env.yml
+    production_env.yml
+  TXT
+
 
   # Credentials
   ########################################
@@ -312,6 +289,8 @@ TXT
 
 RUBY
 
+
+
   # App controller
   ########################################
   run 'rm app/controllers/application_controller.rb'
@@ -322,6 +301,7 @@ class ApplicationController < ShopifyApp::AuthenticatedController
   # before_action :authenticate_user!
 end
 RUBY
+
 
   # Pages Controller
   ########################################
@@ -351,6 +331,9 @@ import "bootstrap";
 JS
 
 
+
+
+
 generate('shopify_app:install', '--api_key #{API_KEY}', '--secret #{SECRET_KEY}')
 generate('shopify_app:shop_model')
 generate('shopify_app:home_controller')
@@ -369,41 +352,19 @@ ShopifyApp.configure do |config|
                                   # https://help.shopify.com/en/api/getting-started/authentication/oauth/scopes
   config.embedded_app = false
   config.after_authenticate_job = false
-  config.shop_session_repository = 'Shop'
+  config.shop_session_repository = 'ShopifyApp::InMemoryShopSessionStore'
   config.user_session_repository = 'ShopifyApp::InMemoryUserSessionStore'
-  config.api_version = '2020-07'
+  config.api_version = '2020-04'
   # config.root_url = '/nested'
   # webhook
   # config.webhooks = [
   #   {topic: 'products/create', address: "ENV['ROOT_URL']/webhooks/products_update"}
   # ]
-  # config.scripttags = [
-  #     {event:'onload', src: 'https://my-shopifyapp.herokuapp.com/fancy.js'}
-  #   ]
+  config.scripttags = [
+      {event:'onload', src: 'https://my-shopifyapp.herokuapp.com/fancy.js'}
+    ]
 end
 RUBY
-
-    # Shop model
-    ########################################
-    run 'rm app/models/shop.rb'
-    file 'app/models/shop.rb', <<-RUBY
-    class Shop < ActiveRecord::Base
-      include ShopifyApp::SessionStorage
-
-      def connect_to_store
-        session = ShopifyAPI::Session.new({domain: self.shopify_domain, token: self.shopify_token, api_version: api_version})
-        session.valid?
-        ShopifyAPI::Base.activate_session(session)
-      end
-
-      def api_version
-        ShopifyApp.configuration.api_version
-      end
-    end
-
-
-
-  RUBY
 
     # RESPONSE.RB
     ########################################
@@ -417,8 +378,7 @@ RUBY
 
   RUBY
 
-
- # API/V1/PRODUCT CONTROLLER
+   # API/V1/PRODUCT CONTROLLER
   ########################################
   file 'app/controllers/api/v1/products_controller.rb', <<-RUBY
   module Api
@@ -1331,6 +1291,7 @@ environment.plugins.prepend('Provide',
 JS
   end
 
+
   # Dotenv
   ########################################
   run 'touch .env'
@@ -1339,12 +1300,11 @@ JS
   ########################################
   run 'curl -L https://raw.githubusercontent.com/lewagon/rails-templates/master/.rubocop.yml > .rubocop.yml'
 
-
-run 'rails yarn install --check-files'
-
   # Git
   ########################################
-  git :init
   git add: '.'
-  git commit: "-m 'Initial commit with minimal template from https://github.com/lewagon/rails-templates'"
+  git commit: "-m 'Initial commit with devise template from https://github.com/lewagon/rails-templates'"
+
+  # Fix puma config
+  gsub_file('config/puma.rb', 'pidfile ENV.fetch("PIDFILE") { "tmp/pids/server.pid" }', '# pidfile ENV.fetch("PIDFILE") { "tmp/pids/server.pid" }')
 end
