@@ -312,16 +312,8 @@ TXT
 
 RUBY
 
-  # App controller
-  ########################################
-  run 'rm app/controllers/application_controller.rb'
-  file 'app/controllers/application_controller.rb', <<-RUBY
-class ApplicationController < ShopifyApp::AuthenticatedController
-  protect_from_forgery with: :exception
-  # include Response
-  # before_action :authenticate_user!
-end
-RUBY
+
+
 
   # Pages Controller
   ########################################
@@ -599,7 +591,7 @@ RUBY
 
   # Retry
   ########################################
-  file 'app/lib/shopify_api_retry.rb', <<-RUBY
+  file 'lib/shopify_api_retry.rb', <<-RUBY
   require "shopify_api"
 
   module ShopifyAPIRetry
