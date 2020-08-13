@@ -597,6 +597,42 @@ class ApplicationController < ShopifyApp::AuthenticatedController
 end
 RUBY
 
+  # Retry
+  ########################################
+  file 'app/lib/shopify_api_retry.rb', <<-RUBY
+  require "shopify_api"
+
+  module ShopifyAPIRetry
+    VERSION = "0.0.1".freeze
+    HTTP_RETRY_AFTER = "Retry-After".freeze
+
+    def retry(seconds_to_wait = nil)
+      raise ArgumentError, "block required" unless block_given?
+      raise ArgumentError, "seconds to wait must be > 0" unless seconds_to_wait.nil? || seconds_to_wait > 0
+
+      result = nil
+
+      begin
+        result = yield
+      rescue ActiveResource::ClientError => e
+        # Not 100% if we need to check for code method, I think I saw a NoMethodError...
+        raise unless e.response.respond_to?(:code) && e.response.code.to_i == 429
+        p "credit used : #{ShopifyAPI.credit_used}"
+
+        seconds_to_wait = (e.response[HTTP_RETRY_AFTER] || 10).to_i unless seconds_to_wait
+        sleep 10
+
+        retry
+      end
+
+      result
+    end
+
+    module_function :retry
+  end
+
+RUBY
+
   ### Shopify APP
   file 'app/javascript/packs/application.js', <<-JS
 import "bootstrap";
