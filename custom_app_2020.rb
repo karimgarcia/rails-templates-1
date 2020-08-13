@@ -553,7 +553,7 @@ RUBY
 
   # Retry
   ########################################
-  file 'app/lib/shopify_api_retry.rb', <<-RUBY
+  file 'lib/shopify_api_retry.rb', <<-RUBY
   require "shopify_api"
 
   module ShopifyAPIRetry
