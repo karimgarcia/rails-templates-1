@@ -344,8 +344,8 @@ JS
 
 
 generate('shopify_app:install', '--api_key #{API_KEY}', '--secret #{SECRET_KEY}')
-generate('shopify_app:shop_model')
 generate('shopify_app:home_controller --with-session-token true')
+generate('shopify_app:shop_model')
 # generate('shopify_app:app_proxy_controller')
 generate('shopify_app:controllers')
 rails_command 'db:migrate'
@@ -383,7 +383,7 @@ RUBY
     run 'rm app/models/shop.rb'
     file 'app/models/shop.rb', <<-RUBY
     class Shop < ActiveRecord::Base
-      include ShopifyApp::SessionStorage
+      include ShopifyApp::ShopSessionStorage
 
       def connect_to_store
         session = ShopifyAPI::Session.new({domain: self.shopify_domain, token: self.shopify_token, api_version: api_version})
